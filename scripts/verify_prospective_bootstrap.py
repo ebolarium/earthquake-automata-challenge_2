@@ -50,10 +50,18 @@ def event_statistics(connection, snapshot_ids: list[int]) -> dict:
     }
 
 
-def verify_region(connection, client, bucket: str, region: dict, root: Path, cutoff) -> dict:
+def verify_region(
+    connection,
+    client,
+    bucket: str,
+    protocol_id: str,
+    region: dict,
+    root: Path,
+    cutoff,
+) -> dict:
     start = auxiliary_start(region, root)
     snapshots = selected_bootstrap_snapshots(
-        connection, protocol["protocol_id"], region["region_id"], start, cutoff
+        connection, protocol_id, region["region_id"], start, cutoff
     )
     validate_contiguous_windows(
         [(item["start"], item["cutoff"]) for item in snapshots], start, cutoff
@@ -104,7 +112,15 @@ def main() -> int:
                 continue
             try:
                 results.append(
-                    verify_region(connection, client, bucket, region, ROOT, args.cutoff)
+                    verify_region(
+                        connection,
+                        client,
+                        bucket,
+                        protocol["protocol_id"],
+                        region,
+                        ROOT,
+                        args.cutoff,
+                    )
                 )
             except Exception as error:
                 failures.append(
