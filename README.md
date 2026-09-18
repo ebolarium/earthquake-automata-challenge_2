@@ -281,3 +281,6 @@ Scientific questions, criticism, and collaboration: `hello@bboga.com`.
 
 This is a research forecast experiment, not an earthquake warning or a claim
 of deterministic earthquake prediction.
+
+[![DOI](https://zenodo.org/badge/1375673610.svg)](https://doi.org/10.5281/zenodo.22832304)
+
