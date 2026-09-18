@@ -527,6 +527,8 @@ def run_protocol(
 ) -> int:
     protocol_path = ROOT / relative_protocol_path
     protocol = validate_protocol(protocol_path, ROOT)
+    if protocol["mode"] == "dry_run":
+        activate_dry_run(database_url, protocol["protocol_id"], issue_time)
     policy = validate_downtime_policy(POLICY_PATH)
     known = [region["region_id"] for region in protocol["regions"]]
     selected = args.regions or known
@@ -574,6 +576,44 @@ def run_protocol(
         "regions": results,
     }, sort_keys=True))
     return 1 if failed else 0
+
+
+def activate_dry_run(
+    database_url: str, protocol_id: str, issue_time: datetime
+) -> None:
+    """Atomically record the first real-time issue as the dry-run boundary."""
+
+    import psycopg
+
+    issue = issue_time.astimezone(timezone.utc)
+    first_target = issue.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(
+        days=1
+    )
+    with psycopg.connect(database_url) as connection:
+        connection.execute(
+            "SELECT pg_advisory_xact_lock(hashtext(%s))",
+            (f"{protocol_id}:activation",),
+        )
+        row = connection.execute(
+            "SELECT status, planned_start FROM prospective.protocols WHERE protocol_id = %s",
+            (protocol_id,),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError("dry-run protocol was not seeded")
+        if row[0] == "draft":
+            connection.execute(
+                """
+                UPDATE prospective.protocols
+                SET status = 'dry_run', planned_start = %s, activated_at = %s
+                WHERE protocol_id = %s AND status = 'draft'
+                """,
+                (first_target, issue, protocol_id),
+            )
+        elif row[0] == "dry_run":
+            if row[1] is None:
+                raise RuntimeError("active dry-run protocol has no planned start")
+        else:
+            raise RuntimeError(f"dry-run protocol cannot run from status {row[0]}")
 
 
 def main() -> int:
