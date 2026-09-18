@@ -87,7 +87,9 @@ class WorkerServiceTest(unittest.TestCase):
             lambda region: {"region_id": region, "layers": {}},
         )
         with urllib.request.urlopen(f"{base}/") as response:
-            self.assertIn(b"Multi-Region ETAS Test", response.read())
+            content = response.read()
+            self.assertIn(b"Multi-Region ETAS Test", content)
+            self.assertIn(b"365 days", content)
             self.assertEqual(response.headers["X-Frame-Options"], "DENY")
         with urllib.request.urlopen(f"{base}/api/dashboard") as response:
             self.assertEqual(json.load(response), dashboard)
@@ -110,13 +112,18 @@ class WorkerServiceTest(unittest.TestCase):
         with urllib.request.urlopen(f"{base}/about.html") as response:
             content = response.read()
             self.assertIn("Multi-Region ETAS Test".encode(), content)
-            self.assertIn(b"Machine-readable evidence", content)
+            self.assertIn(b"PRE-SPECIFIED RESEARCH QUESTION", content)
+            self.assertIn(b"Open evaluation JSON", content)
+        with urllib.request.urlopen(f"{base}/tr/") as response:
+            self.assertIn("365 gün".encode(), response.read())
+        with urllib.request.urlopen(f"{base}/tr/about.html") as response:
+            self.assertIn("ÖNCEDEN BELİRLENMİŞ ARAŞTIRMA SORUSU".encode(), response.read())
         with urllib.request.urlopen(f"{base}/en/") as response:
             self.assertIn(b"Multi-Region ETAS Test", response.read())
         with urllib.request.urlopen(f"{base}/en/about.html") as response:
             content = response.read()
             self.assertIn(b"Multi-Region ETAS Test", content)
-            self.assertIn(b"Machine-readable evidence", content)
+            self.assertIn(b"Open evaluation JSON", content)
 
     def test_forecast_map_requires_region_and_handles_unknown_region(self):
         def reader(region):

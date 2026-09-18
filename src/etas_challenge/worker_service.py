@@ -116,13 +116,17 @@ def handler_factory(
             if path == "/newsletter/unsubscribe":
                 self._serve_unsubscribe_page()
                 return
-            if path == "/":
-                self.path = "/index.html"
-            elif path in ("/en", "/en/"):
+            if path in ("/", "/en", "/en/"):
                 self.path = "/en/index.html"
+            elif path in ("/about.html", "/en/about.html"):
+                self.path = "/en/about.html"
+            elif path in ("/tr", "/tr/"):
+                self.path = "/index.html"
+            elif path == "/tr/about.html":
+                self.path = "/about.html"
             elif path not in (
-                "/index.html", "/about.html", "/styles.css", "/about.css", "/app.js",
-                "/app-en.js", "/en/index.html", "/en/about.html"
+                "/index.html", "/styles.css", "/about.css", "/app.js",
+                "/app-en.js", "/en/index.html"
             ):
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
@@ -280,7 +284,7 @@ def handler_factory(
                     self._json_response(HTTPStatus.ACCEPTED, {"status": "pending"})
                     return
                 result = newsletter_service.subscribe(
-                    str(body.get("email", "")), str(body.get("locale", "tr"))
+                    str(body.get("email", "")), str(body.get("locale", "en"))
                 )
             except (ValueError, json.JSONDecodeError):
                 self._json_error(HTTPStatus.BAD_REQUEST, "invalid_subscription")

@@ -36,7 +36,7 @@ def main() -> int:
     api_key = os.environ.get("RESEND_API_KEY")
     base_url = public_base_url(os.environ.get("NEWSLETTER_PUBLIC_BASE_URL", ""))
     sender = os.environ.get(
-        "NEWSLETTER_FROM", "Evidence-Gated Forecast Test <hello@bboga.com>"
+        "NEWSLETTER_FROM", "Multi-Region ETAS Test <hello@bboga.com>"
     )
     if not database_url:
         raise SystemExit("DATABASE_URL is required")
@@ -108,7 +108,7 @@ def main() -> int:
                                 "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
                             },
                         },
-                        f"ch008-daily-{report_date.isoformat()}-{subscriber_id}",
+                        f"multi-region-etas-daily-{report_date.isoformat()}-{subscriber_id}",
                     )
                 except Exception as exc:
                     connection.execute(

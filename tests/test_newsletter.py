@@ -58,6 +58,13 @@ class NewsletterTest(unittest.TestCase):
             "daily_scores": [{
                 "region_id": "chile", "target_date": "2026-09-02",
                 "revision": "provisional", "event_count": 1, "mean_igpe": 0.01,
+                "csep": {
+                    "challenger": {
+                        "n_test_two_sided_p": 0.42,
+                        "l_test_lower_tail_p": 0.31,
+                    },
+                    "r_test": {"one_sided_p": 0.08},
+                },
             }],
         }
         subject, body = render_daily_report(
@@ -65,7 +72,14 @@ class NewsletterTest(unittest.TestCase):
         )
         self.assertIn("Daily Status", subject)
         self.assertIn("Pipeline operational", body)
+        self.assertIn("N-test p", body)
+        self.assertIn("0.420", body)
         self.assertIn("https://example.com/u", body)
+        self.assertIn('href="https://example.com/"', body)
+        _, turkish_body = render_daily_report(
+            dashboard, date(2026, 9, 3), "tr", "https://example.com", "https://example.com/u"
+        )
+        self.assertIn('href="https://example.com/tr/"', turkish_body)
 
 
 if __name__ == "__main__":

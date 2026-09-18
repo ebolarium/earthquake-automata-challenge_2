@@ -2,54 +2,28 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Nedensel kanıt kapılı uzamsal deprem tahmininin yöntem ve sınırlamaları.">
-  <title>Yöntem · Multi-Region ETAS Test</title>
-  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/about.css">
+  <meta name="description" content="Çok bölgeli prospektif ETAS deneyinin yöntemi, skorlaması, güvenlik önlemleri ve sınırlamaları.">
+  <title>Yöntem · Multi-Region ETAS Test</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/about.css">
 </head>
 <body>
-  <header class="app-header"><div class="brand"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><div><h1>Multi-Region ETAS Test</h1><p>Yöntem ve bilimsel sınırlar</p></div></div><a class="language-link" href="/">Dashboard</a></header>
-  <main class="method-page">
-    <article class="method-article">
-      <span class="method-kicker">ARAŞTIRMA SORUSU</span>
-      <h1>Tektonik olarak farklı bölgelerde, dondurulmuş nedensel bir uzamsal düzeltme CSEP kalibrasyonunu bozmadan ETAS’a karşı pozitif bilgi kazancı sağlayabilir mi?</h1>
-      <p class="method-lead">Sistem deprem olasılığına ilişkin kamusal bir uyarı ürünü değildir. Önceden yayımlanmış günlük uzamsal oranların, olaylar gerçekleştikten sonra değiştirilemez biçimde skorlandığı prospektif bir shadow testtir.</p>
+  <header class="app-header"><div class="brand"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><div><h1>Multi-Region ETAS Test</h1><p>Yöntem ve bilimsel sınırlar</p></div></div><div class="header-actions"><a class="language-link" href="/about.html" lang="en" hreflang="en">EN</a><a class="language-link" href="/tr/">Dashboard</a></div></header>
+  <main class="method-shell">
+    <aside class="method-nav" aria-label="Sayfa içeriği"><strong>İçindekiler</strong><a href="#question">Araştırma sorusu</a><a href="#design">Deney tasarımı</a><a href="#models">Tahmin hatları</a><a href="#gate">Nedensel kapı</a><a href="#scoring">Skorlama</a><a href="#integrity">Prospektif bütünlük</a><a href="#limitations">Sınırlamalar</a></aside>
+    <article class="method-document">
+      <header class="document-header" id="question"><span class="kicker">ÖNCEDEN BELİRLENMİŞ ARAŞTIRMA SORUSU</span><h1>Dondurulmuş nedensel bir uzamsal düzeltme, CSEP kalibrasyonunu bozmadan farklı tektonik bölgelerde ETAS’ı iyileştirebilir mi?</h1><p class="lead">365 gün süren, dört bölgeli bir shadow deney. Tahminler her hedef günden önce kilitlenir ve yalnız daha sonra gerçekleşen depremlerle skorlanır.</p><div class="document-meta"><span>Protokol: multi-region-spatial-etas-prospective-v1</span><span>Benchmark: ETAS</span><span>Durum: prospektif</span></div></header>
 
-      <section><h2>Dört tahmin hattı</h2>
-        <dl>
-          <div><dt>ETAS</dt><dd>Donmuş ana bilimsel benchmark</dd></div>
-          <div><dt>Güvenli incumbent</dt><dd>Yenilenme-frailty ve destekli komşuluk artığı</dd></div>
-          <div><dt>Sabit uzamsal uzman</dt><dd>Yalnız en yüksek ETAS aktivite desteğinde kütle taşır</dd></div>
-          <div><dt>Kanıt kapılı tahmin</dt><dd>BF20 aşılana kadar incumbent ile tam aynıdır</dd></div>
-        </dl>
-      </section>
+      <section class="method-section" id="design"><h2>Tek deney, dört tektonik ortam</h2><p>Aynı nedensel mimari California RELM, New Zealand CSEP, Şili dalma-batma koridoru ve Japan C’de bölgesel yeniden uyarlama yapılmadan sınanır. Sonuçlar hem bölge bazında hem de önceden belirlenmiş havuzlanmış analizle raporlanır; aktivasyondan sonra hiçbir bölge çıkarılamaz.</p><div class="fact-grid"><div class="fact"><span>SÜRE</span><strong>365 gün</strong><small>Takvim uzatması yok</small></div><div class="fact"><span>BİRİNCİL EŞİK</span><strong>500 olay</strong><small>Havuzlanmış final katalog</small></div><div class="fact"><span>YAYIN</span><strong>00:05 UTC</strong><small>Sonraki hedef günden önce</small></div></div><div class="claim-note"><strong>Deprem uyarısı değildir</strong><p>Bu sistem istatistiksel uzamsal oran tahminlerini karşılaştırır; tekil deprem öngörüsü veya kamu güvenliği yönlendirmesi sunmaz.</p></div></section>
 
-      <section><h2>Nedensel kapı</h2>
-        <p>Tamamlanan günlerde sabit uzmanın güvenli modele göre olay log-oranları gölgede biriktirilir. Sonraki tahmin gününün ağırlığı aşağıdaki sabit kuralla hesaplanır:</p>
-        <div class="equation">w = max(0, tanh((S − log 20) / 2))</div>
-        <p>Aynı günün gözlemleri aynı günün tahminini değiştiremez. Prospektif başlangıçta <code>S=0</code> olur; retrospektif kanıt taşınmaz. BF20 burada operasyonel bir kanıt eşiğidir, koşulsuz %5 hata garantisi değildir.</p>
-      </section>
+      <section class="method-section" id="models"><h2>Dört tahmin hattı</h2><div class="method-table-wrap"><table class="method-table"><thead><tr><th>Hat</th><th>Rol</th><th>Değişen unsur</th></tr></thead><tbody><tr><td>ETAS</td><td>Dondurulmuş benchmark</td><td>Bölgesel arka plan ve tetiklenmiş sismisite.</td></tr><tr><td>Güvenli incumbent</td><td>Muhafazakâr düzeltme</td><td>Yenilenme-frailty ve destekli-komşuluk artığı.</td></tr><tr><td>Sabit uzamsal uzman</td><td>Öğrenilmiş challenger</td><td>Olasılık kütlesini yalnız yüksek ETAS desteğinde taşır.</td></tr><tr><td>Kanıt kapılı model</td><td>Birincil canlı challenger</td><td>Yalnız prospektif kanıt birikince güvenli ve sabit hatları harmanlar.</td></tr></tbody></table></div><p>Bütün hatlar bölge-gün ETAS toplam beklenen olay sayısını korur. Böylece deney toplamda daha fazla deprem tahmin etmeyi değil, uzamsal dağılım becerisini ölçer.</p></section>
 
-      <section><h2>Skorlama</h2>
-        <p>Birincil izleme, her hattın ETAS’a karşı olay başına bilgi kazancıdır:</p>
-        <div class="equation">IGPE(M, ETAS) = Σ log[λ<sub>M</sub>(i)/λ<sub>ETAS</sub>(i)] / N</div>
-        <p>Güvenlik izlemesi ayrıca sabit ve kapılı uzmanların güvenli incumbent’a karşı ek IGPE’sini raporlar. Bütün katmanlar aynı günlük toplam beklenen olay sayısını korur; böylece çiftli kompansatör farkı sıfırdır.</p>
-        <p>Her bölge için ayrıca koşullu-Poisson uzamsal CSEP N-test, L-test ve R-test değerleri günlük ve kümülatif olarak yayımlanır.</p>
-      </section>
+      <section class="method-section" id="gate"><h2>Nedensel, tek yönlü kanıt kapısı</h2><p>Yalnız tamamlanmış prospektif günler sonraki bir tahmini etkileyebilir. Sabit-versus-güvenli olay log-oranları gölgede birikir ve sonraki ağırlık şöyle hesaplanır:</p><div class="equation">w = max(0, tanh((S − log 20) / 2))</div><p>Durum <code>S=0</code> ile başlar; retrospektif kanıt içeri alınmaz. BF20 aşılana kadar kapılı hat güvenli hatla aynıdır. BF20 koşulsuz %5 yanlış aktivasyon garantisi değil, operasyonel bir kanıt eşiğidir.</p></section>
 
-      <section><h2>Prospektif bütünlük</h2>
-        <ul>
-          <li>Tahmin artifact’i hedef gün başlamadan önce nesne depolamaya yazılır ve SHA-256 ile kilitlenir.</li>
-          <li>Backfill yasaktır; kaçırılan yayın günleri sonradan doldurulmaz.</li>
-          <li>İlk katalog skoru provisional, yedi gün sonraki snapshot finaldir.</li>
-          <li>Ek 14 günlük dry run yoktur; ilk dört-bölge forecast’ı eksiksiz yayımlandığında 365 günlük saat başlar.</li>
-          <li>Yedi günlük süre bekleme değildir; yalnız katalog revizyonlarının final skora yerleşme süresidir.</li>
-        </ul>
-      </section>
+      <section class="method-section" id="scoring"><h2>Ne ölçülüyor?</h2><h3>Birincil metrik: deprem başına bilgi kazancı</h3><div class="equation">IGPE(M, ETAS) = (1/N) Σᵢ log[λM(i) / λETAS(i)]</div><p>Pozitif IGPE challenger’ı, negatif IGPE ETAS’ı destekler. Günlük oran kütlesi korunduğu için çiftli kompansatör farkı sıfırdır.</p><h3>Kalibrasyon: CSEP testleri</h3><div class="method-table-wrap"><table class="method-table"><thead><tr><th>Test</th><th>Soru</th><th>Yayımlanan değer</th></tr></thead><tbody><tr><td>N-test</td><td>Gözlenen deprem sayısı tahmin edilen sayıyla uyumlu mu?</td><td>Çift kuyruklu Poisson p-değeri</td></tr><tr><td>L-test</td><td>Gözlenen uzamsal olabilirlik model altında tipik mi?</td><td>Alt-kuyruk simülasyon p-değeri</td></tr><tr><td>R-test</td><td>Challenger eşlenmiş olabilirlikte ETAS’ı geçti mi?</td><td>Log-olabilirlik oranı ve ETAS-null p-değeri</td></tr></tbody></table></div></section>
 
-      <section><h2>Sınırlamalar</h2>
-        <p>Retrospektif geliştirme California, Yeni Zelanda, Şili ve Japonya C sonuçları görüldükten sonra yapılmıştır. Bu nedenle geçmiş sonuçlar bağımsız doğrulama değildir. Kapı büyük negatif transferi azaltmış olsa da Şili’de çok küçük bir incumbent-relative kayıp üretmiştir. Prospektif test tam olarak bu belirsizliği çözmek için tasarlanmıştır.</p>
-      </section>
+      <section class="method-section" id="integrity"><h2>Prospektif bütünlük</h2><div class="pipeline-steps"><div><span>01</span><strong>Topla</strong><small>Revizyon-duyarlı kataloglar</small></div><div><span>02</span><strong>İlerle</strong><small>Yalnız yayın öncesi geçmiş</small></div><div><span>03</span><strong>Yayımla</strong><small>SHA-256 kilitli artifact’ler</small></div><div><span>04</span><strong>Skorla</strong><small>Anlık provisional sonuç</small></div><div><span>05</span><strong>Olgunlaştır</strong><small>Yedi gün sonra final</small></div></div><ul><li>Backfill yasaktır; kaçırılan tahmin hedef başladıktan sonra yeniden üretilemez.</li><li>365 günlük sayaç yalnız atomik dört-bölge yayınıyla başlar.</li><li>Yedi gün bekleme değil, katalog olgunlaşma süresidir.</li><li>Model, özellik, eşik, geometri veya kapı değişikliği yeni protokol kimliği gerektirir.</li></ul></section>
+
+      <section class="method-section" id="limitations"><h2>Bilinen sınırlamalar</h2><p>Yöntem dört bölgedeki retrospektif sonuçlar görüldükten sonra geliştirildi; dolayısıyla bu geçmiş sonuçlar bağımsız doğrulama değildir. Katalog tamlığı ve kurum sürekliliği bölgelere göre değişir; Japonya’nın prospektif hedeflerinde ComCat kullanımı tarihsel JMA geliştirme kataloğundan açıkça ayrılır. Seyrek günlerde günlük CSEP değerleri oynak olabilir; nihai yorum IGPE’nin yanında olay sayısını, bölgesel kapsamı, kesintileri ve belirsizliği de içermelidir.</p><div class="contact-band"><div><strong>Canlı kanıtı denetle</strong><span>Makine-okunur durum, skorlar ve kilitli dosya hash’leri</span></div><a href="/api/evaluation.json">Evaluation JSON’u aç →</a></div></section>
     </article>
   </main>
-  <footer class="site-footer"><span>Non-operational research forecast</span><a href="/api/evaluation.json">Machine-readable evidence</a></footer>
+  <footer class="site-footer"><span>Operasyonel olmayan araştırma tahmini</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
 </body></html>

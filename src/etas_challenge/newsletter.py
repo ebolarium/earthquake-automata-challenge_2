@@ -99,13 +99,13 @@ def confirmation_message(sender: str, email: str, locale: str, confirm_url: str)
         action = "Confirm email address"
         ignore = "If you did not request this, you can ignore this email."
     else:
-        subject = "Kanıt Kapılı Tahmin günlük durum raporu aboneliğini doğrula"
+        subject = "Çok Bölgeli ETAS Testi günlük rapor aboneliğini doğrula"
         title = "Aboneliğini doğrula"
-        copy = "Her sabah Kanıt Kapılı Tahmin Testi durum raporunu almak için aşağıdaki düğmeyi kullan."
+        copy = "Her sabah Çok Bölgeli ETAS Testi durum raporunu almak için aşağıdaki düğmeyi kullan."
         action = "E-posta adresini doğrula"
         ignore = "Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin."
     html = f"""<!doctype html><html><body style="margin:0;background:#f4f6f5;color:#17201e;font-family:Arial,sans-serif">
-<div style="max-width:560px;margin:0 auto;padding:36px 20px"><p style="font-size:11px;color:#087f7a;font-weight:700">EVIDENCE-GATED FORECAST TEST</p>
+<div style="max-width:560px;margin:0 auto;padding:36px 20px"><p style="font-size:11px;color:#087f7a;font-weight:700">MULTI-REGION ETAS PROSPECTIVE TEST</p>
 <h1 style="font-size:24px">{title}</h1><p style="font-size:14px;line-height:1.6">{copy}</p>
 <p style="margin:28px 0"><a href="{confirm_url}" style="padding:11px 16px;background:#087f7a;color:#fff;text-decoration:none;border-radius:4px;font-weight:700">{action}</a></p>
 <p style="font-size:11px;color:#68736f">{ignore}</p></div></body></html>"""
@@ -182,7 +182,7 @@ class NewsletterService:
             confirm_url = f"{self.base_url}/newsletter/confirm?token={token}"
             self.client.send(
                 confirmation_message(self.sender, email, locale, confirm_url),
-                f"ch008-confirm-{digest}",
+                f"multi-region-etas-confirm-{digest}",
             )
         return SubscriptionResult("pending", should_send)
 

@@ -22,6 +22,7 @@ VERIFY_OBJECT_STORAGE=1
 REQUIRE_OBJECT_STORAGE=1
 PUBLIC_BASE_URL=https://etas2.bboga.com
 NEWSLETTER_PUBLIC_BASE_URL=https://etas2.bboga.com
+NEWSLETTER_FROM="Multi-Region ETAS Test <hello@bboga.com>"
 ```
 
 Expose port `8080`; health is `/health`. If a database password or S3 key has
