@@ -1,25 +1,30 @@
-# Evidence-Gated Earthquake Forecast Test
+# Prospective Multi-Region Evaluation of a Causal Spatial Correction to ETAS
 
 [![Test](https://github.com/ebolarium/earthquake-automata-challenge_2/actions/workflows/test.yml/badge.svg)](https://github.com/ebolarium/earthquake-automata-challenge_2/actions/workflows/test.yml)
 
 This repository asks one pre-specified question:
 
-> Can a causal evidence gate preserve ETAS-relative information gain while
-> limiting negative transfer from a learned spatial correction?
+> Across tectonically distinct regions, does a frozen causal spatial correction
+> to ETAS achieve positive prospective information gain without degrading CSEP
+> count and likelihood calibration?
 
-The California RELM experiment publishes four daily, count-preserving forecast
-layers before the target UTC day begins: frozen ETAS, a supported-neighbor
-renewal incumbent, a fixed learned spatial expert, and an evidence-gated blend.
+The 365-day experiment covers California RELM, New Zealand CSEP, the Chilean
+subduction corridor, and Japan C. It publishes four daily, count-preserving
+forecast layers before the target UTC day begins: frozen regional ETAS, a safe
+renewal correction, a fixed learned spatial expert, and an evidence-gated blend.
 The gate starts with zero historical evidence and may use only completed
 prospective target days. The primary live metric remains paired information
 gain per earthquake (IGPE) against ETAS; safety comparisons against the renewal
-incumbent are reported alongside it.
+incumbent are reported alongside it. Conditional-Poisson spatial CSEP N, L,
+and R tests are reported per region and in cumulative projections. Frozen ETAS
+values and the range across the four regional calibrations are public too.
 
-The current protocol is a 14-day operational dry run. Its scores are discarded
-scientifically and cannot support a performance claim. A claim-bearing 365-day
-test requires a separate immutable protocol and commit after the dry run passes.
-No forecast is backfilled, and any model, feature, threshold, geometry, or gate
-change requires a new protocol identity.
+There is no additional 14-day dry run. The claim-bearing clock begins only when
+all four first-day forecasts have been published for the same target window.
+No forecast is backfilled, and any model, feature, threshold, geometry, catalog,
+or gate change requires a new protocol identity. The seven-day interval is only
+the catalog-settlement delay for final scores; provisional scoring and forecast
+publication continue every day.
 
 The implementation includes a PostgreSQL/S3 causal publication pipeline,
 checksum-verified forecast artifacts, provisional and seven-day-settled scores,
@@ -53,9 +58,8 @@ python scripts/run_prospective_daily.py
 Coolify environment variables and the one-time causal state bootstrap are in
 [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
-The command intentionally runs only the operational dry run. It cannot promote
-itself to a scientific prospective claim. Promotion requires a reviewed
-protocol file, a new commit, and a separate artifact lane.
+On its first successful complete four-region issue, the command atomically
+activates the frozen 365-day protocol. A partial issue does not start the clock.
 
 The independent morning newsletter command is:
 

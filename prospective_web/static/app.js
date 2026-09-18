@@ -135,7 +135,7 @@ function renderForecastMap() {
   setText("map-fact-safe", formatMapTotal(data.summary.safe_total));
   setText("map-fact-ch008", formatMapTotal(data.summary.gated_total ?? data.summary.ch008_total));
   setText("map-semantics-note", data.semantics === "one_day_expected_count_per_cell"
-    ? "Kaliforniya katmanları hücre başına bir günlük toplam beklenen olay sayısını gösterir."
+    ? "Katmanlar hücre başına bir günlük toplam beklenen olay sayısını gösterir."
     : "Bu bölgedeki katmanlar, sıralı ETAS değerlendirmesinde kullanılan hedef öncesi doğrudan arka plan kütlesini gösterir.");
   const difference = state.mapLayer.includes("log_ratio");
   const scale = document.querySelector(".map-scale");
@@ -374,7 +374,9 @@ function renderRegions() {
       cell(forecast ? formatDate(forecast.target_start) : "—"),
       cell(primary(region.latest_catalog ? formatDateTime(region.latest_catalog.cutoff) : "—", region.latest_catalog ? `${region.latest_catalog.window_events} olay / 30 gün` : "Snapshot yok")),
       cell(comparisonValue(region, "gated_vs_etas")),
-      cell(comparisonValue(region, "gated_vs_safe")),
+      cell(formatP(region.csep?.provisional?.challenger?.n_test_two_sided_p)),
+      cell(formatP(region.csep?.provisional?.challenger?.l_test_lower_tail_p)),
+      cell(formatP(region.csep?.provisional?.r_test?.one_sided_p)),
     );
     body.appendChild(row);
   });
@@ -389,10 +391,12 @@ function renderScores() {
     const comparisons = score.multi_model?.comparisons || {};
     const row = document.createElement("tr");
     row.append(
-      cell(formatDate(score.target_date)), cell(score.revision === "final" ? "Final" : "Provisional"),
-      cell(formatInteger(score.event_count)), cell(formatGain(comparisons.safe_vs_etas?.mean_igpe)),
-      cell(formatGain(comparisons.fixed_vs_etas?.mean_igpe)), cell(formatGain(comparisons.gated_vs_etas?.mean_igpe)),
-      cell(formatGain(comparisons.gated_vs_safe?.mean_igpe)),
+      cell(formatDate(score.target_date)), cell(regionName(score.region_id)),
+      cell(score.revision === "final" ? "Final" : "Provisional"),
+      cell(formatInteger(score.event_count)), cell(formatGain(comparisons.gated_vs_etas?.mean_igpe)),
+      cell(formatP(score.csep?.challenger?.n_test_two_sided_p)),
+      cell(formatP(score.csep?.challenger?.l_test_lower_tail_p)),
+      cell(formatP(score.csep?.r_test?.one_sided_p)),
     );
     body.appendChild(row);
   });
@@ -403,6 +407,7 @@ function renderProtocol() {
   const facts = document.getElementById("protocol-facts");
   facts.replaceChildren();
   const mode = protocol.mode === "prospective" ? "365 günlük prospektif test" : "14 günlük dry run";
+  setText("research-question", state.dashboard.research_question || "—");
   [["Kimlik", protocol.protocol_id], ["Mod", mode], ["Prospektif iddia", protocol.counts_toward_prospective_claim ? "Dahil" : "Dahil değil"], ["Bölge", String(state.dashboard.regions.length)], ["Final gecikmesi", `${protocol.settled_score_delay_days} gün`]].forEach(([label, value]) => {
     const div = document.createElement("div"); const dt = document.createElement("dt"); const dd = document.createElement("dd"); dt.textContent = label; dd.textContent = value; div.append(dt, dd); facts.appendChild(div);
   });
@@ -414,6 +419,13 @@ function renderProtocol() {
     title.textContent = region.name; detail.textContent = depthLabel(region); copy.append(title, detail);
     const magnitude = document.createElement("span"); magnitude.textContent = `M≥${region.minimum_magnitude.toFixed(1)}`;
     item.append(copy, magnitude); regions.appendChild(item);
+  });
+  const ranges = document.getElementById("parameter-ranges");
+  ranges.replaceChildren();
+  Object.entries(state.dashboard.parameter_reporting?.etas_typical_ranges || {}).forEach(([name, value]) => {
+    const div = document.createElement("div"); const dt = document.createElement("dt"); const dd = document.createElement("dd");
+    dt.textContent = name; dd.textContent = `${Number(value[0]).toPrecision(4)} – ${Number(value[1]).toPrecision(4)}`;
+    div.append(dt, dd); ranges.appendChild(div);
   });
 }
 
@@ -437,9 +449,10 @@ function comparisonLabel(name) { return ({ gated_vs_etas: "Kapılı model / ETAS
 function cell(content) { const td = document.createElement("td"); if (content instanceof Node) td.appendChild(content); else td.textContent = content; return td; }
 function gainClass(value) { return value > 0 ? "gain-positive" : value < 0 ? "gain-negative" : "gain-neutral"; }
 function regionName(id) { return state.dashboard.regions.find((region) => region.region_id === id)?.name || id; }
-function shortRegion(name) { return name.includes("California") ? "California" : name.includes("Zealand") ? "Yeni Zelanda" : "Şili"; }
+function shortRegion(name) { return name.includes("California") ? "California" : name.includes("Zealand") ? "Yeni Zelanda" : name.includes("Japan") ? "Japonya C" : "Şili"; }
 function depthLabel(region) { const min = region.minimum_depth_km ?? 0; return region.maximum_depth_km === null ? `${min}+ km derinlik` : `${min}–${region.maximum_depth_km} km derinlik`; }
 function formatGain(value) { return value === null || value === undefined ? "—" : formatSigned(value, 4); }
+function formatP(value) { return value === null || value === undefined ? "—" : Number(value).toFixed(3); }
 function formatSigned(value, digits = 3) { return `${value > 0 ? "+" : ""}${Number(value).toFixed(digits)}`; }
 function formatFactor(value) { return `${Number(value).toFixed(4)}×`; }
 function formatInteger(value) { return new Intl.NumberFormat("tr-TR").format(value); }

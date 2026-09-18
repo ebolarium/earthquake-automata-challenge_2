@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f4f6f5">
-    <meta name="description" content="Live prospective comparison of ETAS, the safe incumbent, a fixed spatial expert, and a causal evidence-gated forecast in California.">
-    <title>Evidence-Gated Forecast Test</title>
+    <meta name="description" content="A 365-day prospective comparison of ETAS and a causal spatial correction across four tectonic regions.">
+    <title>Multi-Region ETAS Prospective Test</title>
     <link rel="icon" href="data:,">
     <link rel="alternate" type="application/json" href="/api/evaluation.json" title="Machine-readable live evaluation">
     <link rel="alternate" type="text/markdown" href="/ai-evaluation" title="AI evaluation brief">
@@ -16,8 +16,8 @@
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
         <div>
-          <h1>Evidence-Gated Forecast Test</h1>
-          <p>ETAS comparison · California RELM</p>
+          <h1>Multi-Region ETAS Test</h1>
+          <p>365 days · California · New Zealand · Chile · Japan</p>
         </div>
       </div>
       <div class="header-actions">
@@ -42,12 +42,12 @@
       <section class="view active" id="overview-view">
         <section class="run-notice awaiting-scores" id="run-notice" role="status" aria-live="polite">
           <div class="notice-copy">
-            <span id="run-eyebrow">DRY RUN</span>
+            <span id="run-eyebrow">PROSPECTIVE TEST</span>
             <strong id="run-title">Calculating status</strong>
             <small id="run-detail">Loading score progress.</small>
           </div>
           <div class="notice-progress">
-            <strong id="run-progress-label">0/14 days</strong>
+            <strong id="run-progress-label">0/365 days</strong>
             <div class="progress-track" aria-hidden="true"><i id="run-progress-bar"></i></div>
           </div>
         </section>
@@ -89,7 +89,7 @@
           <div class="section-heading"><div><h2 id="regions-title">Region status</h2><p>Latest publication and catalog snapshot</p></div></div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Region</th><th>Forecast</th><th>Target</th><th>Catalog</th><th>Gated / ETAS</th><th>Gated / Safe</th></tr></thead>
+              <thead><tr><th>Region</th><th>Forecast</th><th>Target</th><th>Catalog</th><th>IGPE / ETAS</th><th>N-test</th><th>L-test</th><th>R-test</th></tr></thead>
               <tbody id="regions-body"></tbody>
             </table>
           </div>
@@ -147,7 +147,7 @@
         <div class="view-heading"><span>EVENT-WISE LOG RATE RATIO</span><h2>Daily multi-model scores</h2><p>ETAS-relative IGPE and incumbent-relative safety are reported together.</p></div>
         <div class="table-wrap score-table-wrap">
           <table>
-            <thead><tr><th>Target day</th><th>Revision</th><th>Events</th><th>Safe / ETAS</th><th>Fixed / ETAS</th><th>Gated / ETAS</th><th>Gated / Safe</th></tr></thead>
+            <thead><tr><th>Target day</th><th>Region</th><th>Revision</th><th>Events</th><th>IGPE / ETAS</th><th>N-test</th><th>L-test</th><th>R-test</th></tr></thead>
             <tbody id="scores-body"></tbody>
           </table>
           <div class="table-empty" id="scores-empty">No completed target day yet.</div>
@@ -155,7 +155,7 @@
       </section>
 
       <section class="view" id="protocol-view">
-        <div class="view-heading"><span>LOCKED BEFORE TEST</span><h2>Test protocol</h2><p>ETAS, safe, fixed-expert, and BF20 gate contracts remain unchanged.</p></div>
+        <div class="view-heading"><span>LOCKED BEFORE TEST</span><h2>Test protocol</h2><p id="research-question">Does the spatial correction prospectively improve ETAS across four tectonic regimes?</p></div>
         <div class="protocol-grid">
           <section><h3>Study</h3><dl id="protocol-facts"></dl></section>
           <section><h3>Scoring</h3><dl>
@@ -165,11 +165,12 @@
             <div><dt>Final</dt><dd>After 7 days</dd></div>
           </dl></section>
           <section><h3>Regions</h3><div class="protocol-regions" id="protocol-regions"></div></section>
+          <section><h3>Calibrated ETAS ranges</h3><dl id="parameter-ranges"></dl></section>
         </div>
       </section>
     </main>
 
-    <footer class="site-footer"><span>Evidence-Gated Forecast Test</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
+    <footer class="site-footer"><span>Prospective Multi-Region Evaluation of a Causal Spatial Correction to ETAS</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
     <div class="error-banner" id="error-banner" role="alert"></div>
     <script src="/app-en.js" defer></script>
   </body>

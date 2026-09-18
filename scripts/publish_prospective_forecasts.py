@@ -26,6 +26,7 @@ from etas_challenge.prospective_context import load_california_runtime_context  
 from etas_challenge.prospective_forecast import build_california_artifacts  # noqa: E402
 from etas_challenge.prospective_forecast import build_california_evidence_gate_artifacts  # noqa: E402
 from etas_challenge.prospective_forecast import build_regional_artifacts  # noqa: E402
+from etas_challenge.prospective_forecast import build_regional_evidence_gate_artifacts  # noqa: E402
 from etas_challenge.prospective_forecast import canonical_json_bytes  # noqa: E402
 from etas_challenge.prospective_forecast import deterministic_npz_bytes  # noqa: E402
 from etas_challenge.prospective_forecast import enforce_publication_deadline  # noqa: E402
@@ -43,7 +44,6 @@ RUNTIME_PATH = ROOT / "configs/prospective/daily-runtime-v1.json"
 PARENT_MODEL_PATH = ROOT / "models/ch004-marked-renewal-v1.json"
 CH008_MODEL_PATH = ROOT / "models/ch008-boundary-sensitivity-v1.json"
 FORECAST_MODULE_PATH = ROOT / "src/etas_challenge/prospective_forecast.py"
-EVIDENCE_MODEL_PATH = ROOT / "models/evidence-gate/spatial-evidence-gate-v1.json"
 
 
 def parse_args():
@@ -269,13 +269,18 @@ def main() -> int:
     parent = json.loads(PARENT_MODEL_PATH.read_text(encoding="utf-8"))
     ch008 = json.loads(CH008_MODEL_PATH.read_text(encoding="utf-8"))
     evidence_model = None
-    ensemble = None
+    ensembles = {}
     if protocol.get("forecast_family") == "causal_evidence_gate":
-        evidence_model = json.loads(EVIDENCE_MODEL_PATH.read_text(encoding="utf-8"))
-        weights_path = ROOT / evidence_model["neural_expert"]["weights_path"]
-        if sha256_file(weights_path) != evidence_model["neural_expert"]["weights_sha256"]:
-            raise ValueError("frozen evidence-gate neural weights changed")
-        ensemble = NumpyFastSlowEnsemble.load(weights_path)
+        evidence_path = ROOT / protocol["challenger"]["model_path"]
+        evidence_model = json.loads(evidence_path.read_text(encoding="utf-8"))
+        region_configs = evidence_model.get("regions")
+        if region_configs is None:
+            region_configs = {"california-relm": evidence_model["neural_expert"]}
+        for region_id, region_config in region_configs.items():
+            weights_path = ROOT / region_config["weights_path"]
+            if sha256_file(weights_path) != region_config["weights_sha256"]:
+                raise ValueError(f"frozen neural weights changed: {region_id}")
+            ensembles[region_id] = NumpyFastSlowEnsemble.load(weights_path)
     simulation_reference = json.loads(
         (ROOT / runtime["california_etas_grid"]["simulation_reference"]).read_text(
             encoding="utf-8"
@@ -335,7 +340,7 @@ def main() -> int:
                         simulations=runtime["california_etas_grid"]["simulations"],
                         random_seed=runtime["california_etas_grid"]["random_seed"],
                         evidence_model=evidence_model,
-                        ensemble=ensemble,
+                        ensemble=ensembles[region_id],
                     )
                 elif region_id == "california-relm":
                     pair = build_california_artifacts(
@@ -348,6 +353,19 @@ def main() -> int:
                         simulation_reference=simulation_reference,
                         simulations=runtime["california_etas_grid"]["simulations"],
                         random_seed=runtime["california_etas_grid"]["random_seed"],
+                    )
+                elif protocol.get("forecast_family") == "causal_evidence_gate":
+                    grid = regional_geometry(region)
+                    pair = build_regional_evidence_gate_artifacts(
+                        source,
+                        forecast_start=target_start,
+                        grid=grid,
+                        geometry=region["geometry"],
+                        etas_model=etas_model,
+                        parent_model=parent,
+                        ch008_model=ch008,
+                        evidence_region=evidence_model["regions"][region_id],
+                        ensemble=ensembles[region_id],
                     )
                 else:
                     pair = build_regional_artifacts(

@@ -1,4 +1,4 @@
-"""Deterministic daily ETAS grid generation for prospective California."""
+"""Deterministic daily ETAS grid generation for prospective regions."""
 
 from __future__ import annotations
 
@@ -20,6 +20,86 @@ class ETASGridForecast:
     simulations: int
     sampled_nonbackground_events: int
     sampled_nonbackground_inside: int
+
+
+def regional_daily_etas_grid(
+    *,
+    issue_time: np.datetime64,
+    history_origin_time_ns: np.ndarray,
+    history_latitudes: np.ndarray,
+    history_longitudes: np.ndarray,
+    history_magnitudes: np.ndarray,
+    candidate_latitudes: np.ndarray,
+    candidate_longitudes: np.ndarray,
+    cell_areas_km2: np.ndarray,
+    magnitude_reference: float,
+    parameters: dict[str, float],
+    candidate_batch_size: int = 512,
+) -> np.ndarray:
+    """Evaluate a causal one-day regional ETAS intensity at cell centres.
+
+    This is the deterministic grid form used in the locked external-region
+    experiments. Rates are expected counts per cell over the following day.
+    """
+
+    from etas_challenge.etas_native import EARTH_RADIUS_KM
+
+    times = np.asarray(history_origin_time_ns, dtype=np.int64)
+    lats = np.asarray(history_latitudes, dtype=np.float64)
+    lons = np.asarray(history_longitudes, dtype=np.float64)
+    mags = np.asarray(history_magnitudes, dtype=np.float64)
+    candidates_lat = np.asarray(candidate_latitudes, dtype=np.float64)
+    candidates_lon = np.asarray(candidate_longitudes, dtype=np.float64)
+    areas = np.asarray(cell_areas_km2, dtype=np.float64)
+    if (
+        any(value.shape != times.shape for value in (lats, lons, mags))
+        or candidates_lat.shape != candidates_lon.shape
+        or candidates_lat.shape != areas.shape
+        or np.any(areas <= 0)
+        or candidate_batch_size <= 0
+    ):
+        raise ValueError("regional ETAS grid inputs disagree")
+    issue_ns = int(np.asarray(issue_time, dtype="datetime64[ns]").astype(np.int64))
+    selected = times < issue_ns
+    times = times[selected]
+    lats = lats[selected]
+    lons = lons[selected]
+    mags = mags[selected]
+    delta_days = (issue_ns - times).astype(np.float64) / 86_400_000_000_000.0
+    c = 10.0 ** parameters["log10_c"]
+    tau = 10.0 ** parameters["log10_tau"]
+    temporal = np.exp(-delta_days / tau) / (
+        delta_days + c
+    ) ** (1.0 + parameters["omega"])
+    productivity = 10.0 ** parameters["log10_k0"] * np.exp(
+        parameters["a"] * (mags - magnitude_reference)
+    )
+    magnitude_scale = 10.0 ** parameters["log10_d"] * np.exp(
+        parameters["gamma"] * (mags - magnitude_reference)
+    )
+    source_lat = np.radians(lats)[:, None]
+    source_lon = np.radians(lons)[:, None]
+    rates = np.empty(len(areas), dtype=np.float64)
+    mu = 10.0 ** parameters["log10_mu"]
+    for start in range(0, len(areas), candidate_batch_size):
+        stop = min(start + candidate_batch_size, len(areas))
+        target_lat = np.radians(candidates_lat[start:stop])[None, :]
+        target_lon = np.radians(candidates_lon[start:stop])[None, :]
+        haversine = np.sin((source_lat - target_lat) / 2.0) ** 2 + np.cos(
+            target_lat
+        ) * np.cos(source_lat) * np.sin((source_lon - target_lon) / 2.0) ** 2
+        distance = 2.0 * EARTH_RADIUS_KM * np.arcsin(
+            np.sqrt(np.clip(haversine, 0.0, 1.0))
+        )
+        spatial = 1.0 / (
+            distance * distance + magnitude_scale[:, None]
+        ) ** (1.0 + parameters["rho"])
+        rates[start:stop] = (
+            mu + np.sum((temporal * productivity)[:, None] * spatial, axis=0)
+        ) * areas[start:stop]
+    if np.any(~np.isfinite(rates)) or np.any(rates <= 0):
+        raise ValueError("regional ETAS grid contains invalid rates")
+    return rates
 
 
 def california_daily_etas_grid(

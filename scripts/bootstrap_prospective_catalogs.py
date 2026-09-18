@@ -23,6 +23,7 @@ from etas_challenge.prospective_catalog import fetch_snapshot  # noqa: E402
 from etas_challenge.prospective_persistence import existing_window, persist_snapshot  # noqa: E402
 from etas_challenge.prospective_protocol import validate_protocol  # noqa: E402
 from etas_challenge.prospective_protocol import configured_protocol_path  # noqa: E402
+from etas_challenge.prospective_protocol import artifact_lane  # noqa: E402
 
 
 PROTOCOL_PATH = configured_protocol_path(ROOT)
@@ -89,11 +90,11 @@ def record_incident(database_url: str, protocol_id: str, region_id: str, error: 
         )
 
 
-def artifact_suffix(snapshot) -> str:
+def artifact_suffix(snapshot, lane: str) -> str:
     start = snapshot.start.strftime("%Y%m%dT%H%M%S%fZ")
     cutoff = snapshot.cutoff.strftime("%Y%m%dT%H%M%S%fZ")
     return (
-        f"dry-run/bootstrap/catalogs/{snapshot.region_id}/"
+        f"{lane}/bootstrap/catalogs/{snapshot.region_id}/"
         f"{start}-{cutoff}-{snapshot.content_sha256}.txt"
     )
 
@@ -108,6 +109,7 @@ def collect_window(
     cutoff: datetime,
     refresh: bool,
     delay_seconds: float,
+    lane: str,
 ) -> dict[str, int]:
     existing = None if refresh else stored_window(
         database_url, protocol_id, region["region_id"], start, cutoff
@@ -137,14 +139,14 @@ def collect_window(
         midpoint = start + (cutoff - start) / 2
         left = collect_window(
             database_url, storage, client, protocol_id, region, start, midpoint,
-            refresh, delay_seconds,
+            refresh, delay_seconds, lane,
         )
         right = collect_window(
             database_url, storage, client, protocol_id, region, midpoint, cutoff,
-            refresh, delay_seconds,
+            refresh, delay_seconds, lane,
         )
         return {key: left[key] + right[key] for key in left}
-    key = object_key(storage, artifact_suffix(snapshot))
+    key = object_key(storage, artifact_suffix(snapshot, lane))
     put_verified_bytes(storage, key, snapshot.raw_payload, "text/plain; charset=utf-8", client)
     snapshot_id = store_snapshot(database_url, protocol_id, snapshot, key)
     print(
@@ -175,13 +177,14 @@ def main() -> int:
     if not database_url:
         raise SystemExit("DATABASE_URL is required")
     protocol = validate_protocol(PROTOCOL_PATH, ROOT)
+    lane = artifact_lane(protocol)
     selected = set(args.regions or [region["region_id"] for region in protocol["regions"]])
     known = {region["region_id"] for region in protocol["regions"]}
     if not selected <= known:
         raise SystemExit(f"unknown regions: {', '.join(sorted(selected - known))}")
     storage = ObjectStorageConfig.from_environment()
-    if protocol["artifact_contract"]["s3_prefix"] != f"{storage.prefix}/dry-run":
-        raise ValueError("configured S3 prefix disagrees with dry-run protocol")
+    if protocol["artifact_contract"]["s3_prefix"] != f"{storage.prefix}/{lane}":
+        raise ValueError("configured S3 prefix disagrees with protocol lane")
     client = storage.client()
     summaries = []
     failures = []
@@ -202,6 +205,7 @@ def main() -> int:
                     window_end,
                     args.refresh,
                     args.request_delay_seconds,
+                    lane,
                 )
                 totals = {key: totals[key] + result[key] for key in totals}
             summaries.append({"region_id": region["region_id"], **totals})

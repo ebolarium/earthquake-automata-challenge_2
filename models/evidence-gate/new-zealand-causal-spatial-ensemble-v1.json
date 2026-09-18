@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "model_id": "new-zealand-causal-spatial-ensemble-v1",
+  "training_contract": "leave-one-region-out; target region excluded",
+  "output": "models/evidence-gate/new-zealand-causal-spatial-ensemble-v1.npz",
+  "output_sha256": "eead28818625757d6fbd66c7076d3cfe03c2c14174b2d1670d36ae6d57f1526f",
+  "sources": [
+    {
+      "seed": 14002,
+      "path": "artifacts/ch014-chronology-regularized-loro-v1/new_zealand-relative-fast-slow.pt",
+      "sha256": "18d375274253604daec213bf185ef750f9fc0089ca411cbadb224610071f9f1c"
+    },
+    {
+      "seed": 14003,
+      "path": "artifacts/ch014-chronology-seed-14003-v1/new_zealand-relative-fast-slow.pt",
+      "sha256": "0cc1a5f5969739bdad015a1c772fc6bccc8d8bedb6906f2186835ced5802ac33"
+    },
+    {
+      "seed": 14004,
+      "path": "artifacts/ch014-chronology-seed-14004-v1/new_zealand-relative-fast-slow.pt",
+      "sha256": "f327ad7a88533caf87ed1c6d4051db35127cb32fd29109caf15a003267e88383"
+    }
+  ],
+  "conversion": "lossless tensor-to-NumPy export; inference equivalence tested separately"
+}

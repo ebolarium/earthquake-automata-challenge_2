@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "protocol_id": "multi-region-spatial-etas-prospective-v1",
+  "status": "frozen_awaiting_activation",
+  "mode": "prospective",
+  "forecast_family": "causal_evidence_gate",
+  "counts_toward_prospective_claim": true,
+  "duration_days": 365,
+  "minimum_events": 500,
+  "public_title": "Prospective Multi-Region Evaluation of a Causal Spatial Correction to ETAS",
+  "research_question": "Across tectonically distinct regions, does a frozen causal spatial correction to ETAS achieve positive prospective information gain without degrading CSEP count and likelihood calibration?",
+  "activation_contract": {
+    "trigger": "first_atomic_four_region_forecast",
+    "all_regions_must_publish_same_target_start": true,
+    "no_pre_activation_score_is_admissible": true,
+    "no_dry_run_required": true,
+    "backfill_permitted": false
+  },
+  "issue_contract": {
+    "frequency": "daily",
+    "target_window": "next_utc_day",
+    "history_boundary": "strictly_before_issue_time",
+    "persist_before_target_start": true,
+    "backfill_permitted": false,
+    "publication_deadline_utc": "00:15:00"
+  },
+  "catalog_revision_contract": {
+    "raw_response_preserved": true,
+    "first_observed_score": "provisional",
+    "settled_score_delay_days": 7,
+    "settled_score_label": "final",
+    "note": "The seven days are a catalog-settlement delay only; forecasting and provisional scoring continue daily."
+  },
+  "artifact_contract": {
+    "s3_prefix": "prospective/v1/prospective",
+    "lane": "prospective",
+    "forecast_format": "compressed_npz",
+    "manifest_format": "json",
+    "sha256_required": true
+  },
+  "primary_claim": {
+    "metric": "pooled paired information gain per earthquake against frozen ETAS",
+    "score_revision": "final",
+    "minimum_pooled_events": 500,
+    "mean_igpe_must_exceed": 0.0,
+    "bootstrap_method": "stationary daily block bootstrap",
+    "bootstrap_replicates": 10000,
+    "bootstrap_confidence_level": 0.95,
+    "bootstrap_30_day_lower_must_exceed": 0.0,
+    "bootstrap_90_day_lower_must_exceed": 0.0,
+    "regional_results": "reported individually without post-hoc exclusion",
+    "all_regions_must_remain_operationally_eligible": true,
+    "calendar_extension_allowed": false,
+    "if_event_gate_not_met": "inconclusive"
+  },
+  "csep_evaluation": {
+    "tests": ["N-test", "L-test", "R-test"],
+    "forecast_class": "conditional Poisson spatial forecast",
+    "magnitude_treatment": "integrated above each frozen regional threshold",
+    "l_test_simulations_per_region_day": 2000,
+    "reporting": ["daily", "cumulative", "per-region", "pooled"],
+    "calibration_is_secondary_to_igpe": true
+  },
+  "challenger": {
+    "model_id": "multi-region-spatial-correction-v1",
+    "model_path": "models/multi-region-spatial-correction-v1.json",
+    "model_sha256": "53fc58daf0392d12afd06ab431b874bec74d02570aa68d907ece55cbe70f7e4c",
+    "runtime_path": "src/etas_challenge/evidence_gate_forecast.py",
+    "runtime_sha256": "42f7f73511ddb0c4b7601bc4409b03d064b46d9c0f81347421ca270cac78facf",
+    "forecast_builder_path": "src/etas_challenge/prospective_forecast.py",
+    "forecast_builder_sha256": "83f09fac8d9c491ea83b8677e476a7fe4d5117b6dab25ade0e479f089123e5f6",
+    "regional_weights": {
+      "california-relm": {"path": "models/evidence-gate/california-causal-spatial-ensemble-v1.npz", "sha256": "6f5a8905f8d26bbb32c1a9c97f818f42ab26b03cf5fc9f0528e8c63d8af263de"},
+      "new-zealand-csep": {"path": "models/evidence-gate/new-zealand-causal-spatial-ensemble-v1.npz", "sha256": "eead28818625757d6fbd66c7076d3cfe03c2c14174b2d1670d36ae6d57f1526f"},
+      "chile-subduction": {"path": "models/evidence-gate/chile-causal-spatial-ensemble-v1.npz", "sha256": "e6061a9cfaae4a51be6f912c5e8f100309db57622d7a324be3d8efbb328d5e00"},
+      "japan-c": {"path": "models/evidence-gate/japan-c-causal-spatial-ensemble-v1.npz", "sha256": "f8d724548274d5a3c359d0527e295ea7c9402784fcec188693740af0bf4bcb1f"}
+    }
+  },
+  "baseline_runtime": {
+    "path": "src/etas_challenge/etas_native.py",
+    "sha256": "a833974874e05dcd4f24d914b405da37ee83f99e744cf5c503ec73d886812161"
+  },
+  "parameter_reporting": {
+    "range_definition": "minimum and maximum of the four frozen regional calibrations",
+    "regional_etas": {
+      "california-relm": {"magnitude_reference": 2.5, "beta": 2.147144208621307, "log10_mu": -6.332988749266953, "log10_k0": -2.67179288198059, "a": 1.5557147535956763, "log10_c": -2.798298194511843, "omega": -0.06185640313453183, "log10_tau": 3.723776695171155, "log10_d": -0.772581157903593, "gamma": 1.010902373836851, "rho": 0.556602024346166},
+      "new-zealand-csep": {"magnitude_reference": 4.0, "beta": 2.2979393030136834, "log10_mu": -6.853263040797745, "log10_k0": -1.313853943217188, "a": 2.657390790848074, "log10_c": -2.6773625419292637, "omega": 0.04044657892232748, "log10_tau": 3.499264817759526, "log10_d": 0.9650993533314213, "gamma": 0.8859088667087605, "rho": 1.0144550153173046},
+      "chile-subduction": {"magnitude_reference": 4.5, "beta": 2.366292708428482, "log10_mu": -7.756056915374683, "log10_k0": 0.04798088917372106, "a": 1.7402967912138272, "log10_c": -2.1564290297186943, "omega": -0.04789783128197469, "log10_tau": 3.2081827610179863, "log10_d": 2.24693847864006, "gamma": 0.5806635893500004, "rho": 0.904539620055525},
+      "japan-c": {"magnitude_reference": 5.0, "beta": 2.2676214093468685, "log10_mu": -8.546310446926666, "log10_k0": 0.22807335371295412, "a": 1.9041144735582323, "log10_c": -2.3281547694793376, "omega": -0.045050349067607916, "log10_tau": 3.838376208100846, "log10_d": 2.317184212830324, "gamma": 0.6181781081506653, "rho": 0.9627121747842572}
+    },
+    "etas_typical_ranges": {
+      "log10_mu": [-8.546310446926666, -6.332988749266953],
+      "log10_k0": [-2.67179288198059, 0.22807335371295412],
+      "a": [1.5557147535956763, 2.657390790848074],
+      "log10_c": [-2.798298194511843, -2.1564290297186943],
+      "omega": [-0.06185640313453183, 0.04044657892232748],
+      "log10_tau": [3.2081827610179863, 3.838376208100846],
+      "log10_d": [-0.772581157903593, 2.317184212830324],
+      "gamma": [0.5806635893500004, 1.010902373836851],
+      "rho": [0.556602024346166, 1.0144550153173046],
+      "beta": [2.147144208621307, 2.366292708428482],
+      "magnitude_reference": [2.5, 5.0]
+    },
+    "challenger_parameters": {
+      "active_etas_quantile": 0.99,
+      "mixture_fraction": 0.5,
+      "bayes_factor_hurdle": 20.0,
+      "initial_log_bayes_factor": 0.0,
+      "context_events": 256,
+      "ensemble_members": 3
+    }
+  },
+  "regions": [
+    {
+      "region_id": "california-relm", "name": "California RELM",
+      "catalog_source": "USGS ANSS ComCat FDSN", "catalog_endpoint": "https://earthquake.usgs.gov/fdsnws/event/1/query",
+      "geometry": {"type": "grid_mask", "path": "data/grids/california-relm-v1.json", "sha256": "91ddb0f09244c2173cd5fe9fab4405a6582175ee933ba271d63639c8872cdce9", "cells": 7682, "spacing_degrees": 0.1},
+      "minimum_magnitude": 2.5, "minimum_depth_km": null, "maximum_depth_km_exclusive": null,
+      "baseline_model_id": "etas-california-comcat25-v1", "challenger_model_id": "multi-region-spatial-correction-v1",
+      "etas_model_path": "models/etas/california-comcat25-v1.json", "etas_model_sha256": "a87aa34b7b716f4c1b78ca62eef5c0add9a14e722a1081be899b63ef39d08b22",
+      "spatial_support_geometry": "ucerf3_fault_network", "renewal_exposure_scale": 1.0
+    },
+    {
+      "region_id": "new-zealand-csep", "name": "New Zealand CSEP",
+      "catalog_source": "GeoNet FDSN Event Web Service", "catalog_endpoint": "https://service.geonet.org.nz/fdsnws/event/1/query",
+      "geometry": {"type": "published_grid_mask", "path": "data/regions/nz-csep-v1.npz", "sha256": "e7b68401782f7f05a9c53ebe5d4eb4bbe1a127804480d5607f0bec3ffa27f0d0", "cells": 6343, "spacing_degrees": 0.1, "latent_spacing_degrees": 0.5},
+      "minimum_magnitude": 4.0, "minimum_depth_km": 0.0, "maximum_depth_km_exclusive": 40.0,
+      "baseline_model_id": "etas-new-zealand-csep-v1", "challenger_model_id": "multi-region-spatial-correction-v1",
+      "etas_model_path": "models/etas/new-zealand-csep-v1.json", "etas_model_sha256": "aab87d0645082ecab3d789db2bcb308c400578971dd5d33d55c57902d25ba3c1",
+      "spatial_support_geometry": "latent_cell_neighborhood", "renewal_exposure_scale": 0.4772598372902653
+    },
+    {
+      "region_id": "chile-subduction", "name": "Chile subduction corridor",
+      "catalog_source": "USGS ANSS ComCat FDSN", "catalog_endpoint": "https://earthquake.usgs.gov/fdsnws/event/1/query",
+      "geometry": {"type": "rectangle", "longitude": [-76.0, -66.0], "latitude": [-56.0, -17.0], "cells": 1560, "spacing_degrees": 0.5, "protocol_path": "configs/regions/chile-subduction-v1.json", "protocol_sha256": "7a1975c3967712ece537549bf0043328eb0f094b386efd091e6a5309afde8101"},
+      "minimum_magnitude": 4.5, "minimum_depth_km": 0.0, "maximum_depth_km_exclusive": 100.0,
+      "baseline_model_id": "etas-chile-subduction-v1", "challenger_model_id": "multi-region-spatial-correction-v1",
+      "etas_model_path": "models/etas/chile-subduction-v1.json", "etas_model_sha256": "936cf0f2f6fc28723e3ca4a2b2c450ab784b782280f40960fd0228941f0e87cd",
+      "spatial_support_geometry": "latent_cell_neighborhood", "renewal_exposure_scale": 4.261045999817415
+    },
+    {
+      "region_id": "japan-c", "name": "Japan C",
+      "catalog_source": "USGS ANSS ComCat FDSN", "catalog_endpoint": "https://earthquake.usgs.gov/fdsnws/event/1/query",
+      "catalog_continuity_note": "Prospective ComCat targets are reported separately from the historical JMA retrospective catalog.",
+      "geometry": {"type": "rectangle", "longitude": [141.0, 154.0], "latitude": [36.0, 47.0], "cells": 572, "spacing_degrees": 0.5, "protocol_path": "configs/regions/japan-c-v1.json", "protocol_sha256": "945cd7a2e0a92db4e2e4fd0100593a0940795d0e83a6e0b14c2c3b8d2135ba88"},
+      "minimum_magnitude": 5.0, "catalog_minimum_magnitude": 3.0, "minimum_depth_km": 0.0, "maximum_depth_km_exclusive": 100.0,
+      "baseline_model_id": "etas-japan-c-v1", "challenger_model_id": "multi-region-spatial-correction-v1",
+      "etas_model_path": "models/etas/japan-c-v1.json", "etas_model_sha256": "e2940b16fa30634bbfb8c0b0f7621d39075f7927877d5a959aef8c371e8d645c",
+      "spatial_support_geometry": "latent_cell_neighborhood", "renewal_exposure_scale": 1.0
+    }
+  ],
+  "freeze_contract": {
+    "model_or_feature_change_requires_new_protocol": true,
+    "region_geometry_catalog_thresholds_and_etas_parameters_frozen": true,
+    "no_region_may_be_excluded_after_activation": true,
+    "downtime_policy_path": "configs/challenge/ch008-downtime-policy.json"
+  }
+}

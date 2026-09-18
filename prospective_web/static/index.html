@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f4f6f5">
-    <meta name="description" content="California için ETAS, güvenli incumbent, sabit uzamsal uzman ve nedensel kanıt kapısının canlı prospektif karşılaştırması.">
-    <title>Evidence-Gated Earthquake Forecast Test</title>
+    <meta name="description" content="Dört tektonik bölgede ETAS ile nedensel uzamsal düzeltmenin 365 günlük prospektif karşılaştırması.">
+    <title>Multi-Region ETAS Prospective Test</title>
     <link rel="icon" href="data:,">
     <link rel="alternate" type="application/json" href="/api/evaluation.json" title="Machine-readable live evaluation">
     <link rel="alternate" type="text/markdown" href="/ai-evaluation" title="AI evaluation brief">
@@ -16,8 +16,8 @@
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
         <div>
-          <h1>Evidence-Gated Forecast Test</h1>
-          <p>ETAS karşılaştırması · California RELM</p>
+          <h1>Multi-Region ETAS Test</h1>
+          <p>365 gün · California · New Zealand · Chile · Japan</p>
         </div>
       </div>
       <div class="header-actions">
@@ -42,12 +42,12 @@
       <section class="view active" id="overview-view">
         <section class="run-notice awaiting-scores" id="run-notice" role="status" aria-live="polite">
           <div class="notice-copy">
-            <span id="run-eyebrow">DRY RUN</span>
+            <span id="run-eyebrow">PROSPEKTİF TEST</span>
             <strong id="run-title">Durum hesaplanıyor</strong>
             <small id="run-detail">Skor ilerlemesi yükleniyor.</small>
           </div>
           <div class="notice-progress">
-            <strong id="run-progress-label">0/14 gün</strong>
+            <strong id="run-progress-label">0/365 gün</strong>
             <div class="progress-track" aria-hidden="true"><i id="run-progress-bar"></i></div>
           </div>
         </section>
@@ -89,7 +89,7 @@
           <div class="section-heading"><div><h2 id="regions-title">Bölge durumu</h2><p>Son yayın ve katalog snapshot’ı</p></div></div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Bölge</th><th>Tahmin</th><th>Hedef</th><th>Katalog</th><th>Kapılı / ETAS</th><th>Kapılı / Güvenli</th></tr></thead>
+              <thead><tr><th>Bölge</th><th>Tahmin</th><th>Hedef</th><th>Katalog</th><th>IGPE / ETAS</th><th>N-test</th><th>L-test</th><th>R-test</th></tr></thead>
               <tbody id="regions-body"></tbody>
             </table>
           </div>
@@ -147,7 +147,7 @@
         <div class="view-heading"><span>EVENT-WISE LOG RATE RATIO</span><h2>Günlük çok-modelli skorlar</h2><p>ETAS-relative IGPE ve incumbent-relative güvenlik katkısı birlikte raporlanır.</p></div>
         <div class="table-wrap score-table-wrap">
           <table>
-            <thead><tr><th>Hedef günü</th><th>Sürüm</th><th>Olay</th><th>Güvenli / ETAS</th><th>Sabit / ETAS</th><th>Kapılı / ETAS</th><th>Kapılı / Güvenli</th></tr></thead>
+            <thead><tr><th>Hedef günü</th><th>Bölge</th><th>Sürüm</th><th>Olay</th><th>IGPE / ETAS</th><th>N-test</th><th>L-test</th><th>R-test</th></tr></thead>
             <tbody id="scores-body"></tbody>
           </table>
           <div class="table-empty" id="scores-empty">Tamamlanmış hedef günü henüz yok.</div>
@@ -155,7 +155,7 @@
       </section>
 
       <section class="view" id="protocol-view">
-        <div class="view-heading"><span>TEST ÖNCESİ KİLİTLENDİ</span><h2>Test protokolü</h2><p>ETAS, güvenli model, sabit uzman ve BF20 kapısı çalışma boyunca değiştirilmez.</p></div>
+        <div class="view-heading"><span>TEST ÖNCESİ KİLİTLENDİ</span><h2>Test protokolü</h2><p id="research-question">Dört farklı tektonik rejimde uzamsal düzeltme ETAS'ı prospektif olarak iyileştiriyor mu?</p></div>
         <div class="protocol-grid">
           <section><h3>Çalışma</h3><dl id="protocol-facts"></dl></section>
           <section><h3>Skorlama</h3><dl>
@@ -165,11 +165,12 @@
             <div><dt>Final</dt><dd>7 gün sonra</dd></div>
           </dl></section>
           <section><h3>Bölgeler</h3><div class="protocol-regions" id="protocol-regions"></div></section>
+          <section><h3>Kalibre edilmiş ETAS aralıkları</h3><dl id="parameter-ranges"></dl></section>
         </div>
       </section>
     </main>
 
-    <footer class="site-footer"><span>Evidence-Gated Earthquake Forecast Test</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
+    <footer class="site-footer"><span>Prospective Multi-Region Evaluation of a Causal Spatial Correction to ETAS</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
 
     <div class="error-banner" id="error-banner" role="alert"></div>
     <script src="/app.js" defer></script>

@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Nedensel kanıt kapılı uzamsal deprem tahmininin yöntem ve sınırlamaları.">
-  <title>Yöntem · Evidence-Gated Forecast Test</title>
+  <title>Yöntem · Multi-Region ETAS Test</title>
   <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/about.css">
 </head>
 <body>
-  <header class="app-header"><div class="brand"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><div><h1>Evidence-Gated Forecast Test</h1><p>Yöntem ve bilimsel sınırlar</p></div></div><a class="language-link" href="/">Dashboard</a></header>
+  <header class="app-header"><div class="brand"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><div><h1>Multi-Region ETAS Test</h1><p>Yöntem ve bilimsel sınırlar</p></div></div><a class="language-link" href="/">Dashboard</a></header>
   <main class="method-page">
     <article class="method-article">
       <span class="method-kicker">ARAŞTIRMA SORUSU</span>
-      <h1>Nedensel bir kanıt kapısı, öğrenilmiş uzamsal düzeltmenin ETAS kazancını korurken negatif transferi sınırlayabilir mi?</h1>
+      <h1>Tektonik olarak farklı bölgelerde, dondurulmuş nedensel bir uzamsal düzeltme CSEP kalibrasyonunu bozmadan ETAS’a karşı pozitif bilgi kazancı sağlayabilir mi?</h1>
       <p class="method-lead">Sistem deprem olasılığına ilişkin kamusal bir uyarı ürünü değildir. Önceden yayımlanmış günlük uzamsal oranların, olaylar gerçekleştikten sonra değiştirilemez biçimde skorlandığı prospektif bir shadow testtir.</p>
 
       <section><h2>Dört tahmin hattı</h2>
@@ -33,6 +33,7 @@
         <p>Birincil izleme, her hattın ETAS’a karşı olay başına bilgi kazancıdır:</p>
         <div class="equation">IGPE(M, ETAS) = Σ log[λ<sub>M</sub>(i)/λ<sub>ETAS</sub>(i)] / N</div>
         <p>Güvenlik izlemesi ayrıca sabit ve kapılı uzmanların güvenli incumbent’a karşı ek IGPE’sini raporlar. Bütün katmanlar aynı günlük toplam beklenen olay sayısını korur; böylece çiftli kompansatör farkı sıfırdır.</p>
+        <p>Her bölge için ayrıca koşullu-Poisson uzamsal CSEP N-test, L-test ve R-test değerleri günlük ve kümülatif olarak yayımlanır.</p>
       </section>
 
       <section><h2>Prospektif bütünlük</h2>
@@ -40,8 +41,8 @@
           <li>Tahmin artifact’i hedef gün başlamadan önce nesne depolamaya yazılır ve SHA-256 ile kilitlenir.</li>
           <li>Backfill yasaktır; kaçırılan yayın günleri sonradan doldurulmaz.</li>
           <li>İlk katalog skoru provisional, yedi gün sonraki snapshot finaldir.</li>
-          <li>14 günlük operasyonel dry run bilimsel iddiaya dahil değildir.</li>
-          <li>365 günlük test ancak ayrı bir dondurulmuş protokol ve commit ile başlatılabilir.</li>
+          <li>Ek 14 günlük dry run yoktur; ilk dört-bölge forecast’ı eksiksiz yayımlandığında 365 günlük saat başlar.</li>
+          <li>Yedi günlük süre bekleme değildir; yalnız katalog revizyonlarının final skora yerleşme süresidir.</li>
         </ul>
       </section>
 

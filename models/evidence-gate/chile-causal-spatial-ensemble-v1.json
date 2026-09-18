@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "model_id": "chile-causal-spatial-ensemble-v1",
+  "training_contract": "leave-one-region-out; target region excluded",
+  "output": "models/evidence-gate/chile-causal-spatial-ensemble-v1.npz",
+  "output_sha256": "e6061a9cfaae4a51be6f912c5e8f100309db57622d7a324be3d8efbb328d5e00",
+  "sources": [
+    {
+      "seed": 14002,
+      "path": "artifacts/ch014-chronology-regularized-loro-v1/chile-relative-fast-slow.pt",
+      "sha256": "8d5fd14dbb81c3cb3ef7c00331877bdc84ca0c593c9ab888b4d38d5c95a8c555"
+    },
+    {
+      "seed": 14003,
+      "path": "artifacts/ch014-chronology-seed-14003-v1/chile-relative-fast-slow.pt",
+      "sha256": "74465d82d2f1c453d115532f3fd5fc27a62c20c28fa1c9a6d6a81be98dfd7ccb"
+    },
+    {
+      "seed": 14004,
+      "path": "artifacts/ch014-chronology-seed-14004-v1/chile-relative-fast-slow.pt",
+      "sha256": "b295d2b6dde257141d3c8a92bd255a2086e5f4b516c5f118a43cd6b1e977e764"
+    }
+  ],
+  "conversion": "lossless tensor-to-NumPy export; inference equivalence tested separately"
+}

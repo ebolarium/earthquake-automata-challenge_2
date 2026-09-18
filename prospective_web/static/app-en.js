@@ -135,7 +135,7 @@ function renderForecastMap() {
   setText("map-fact-safe", formatMapTotal(data.summary.safe_total));
   setText("map-fact-ch008", formatMapTotal(data.summary.gated_total ?? data.summary.ch008_total));
   setText("map-semantics-note", data.semantics === "one_day_expected_count_per_cell"
-    ? "California layers show one-day expected event counts per cell."
+    ? "Layers show one-day expected event counts per cell."
     : "These layers show the pre-target direct-background mass used in sequential ETAS evaluation.");
   const difference = state.mapLayer.includes("log_ratio");
   const scale = document.querySelector(".map-scale");
@@ -374,7 +374,9 @@ function renderRegions() {
       cell(forecast ? formatDate(forecast.target_start) : "—"),
       cell(primary(region.latest_catalog ? formatDateTime(region.latest_catalog.cutoff) : "—", region.latest_catalog ? `${region.latest_catalog.window_events} events / 30 days` : "No snapshot")),
       cell(comparisonValue(region, "gated_vs_etas")),
-      cell(comparisonValue(region, "gated_vs_safe")),
+      cell(formatP(region.csep?.provisional?.challenger?.n_test_two_sided_p)),
+      cell(formatP(region.csep?.provisional?.challenger?.l_test_lower_tail_p)),
+      cell(formatP(region.csep?.provisional?.r_test?.one_sided_p)),
     );
     body.appendChild(row);
   });
@@ -389,10 +391,12 @@ function renderScores() {
     const comparisons = score.multi_model?.comparisons || {};
     const row = document.createElement("tr");
     row.append(
-      cell(formatDate(score.target_date)), cell(score.revision === "final" ? "Final" : "Provisional"),
-      cell(formatInteger(score.event_count)), cell(formatGain(comparisons.safe_vs_etas?.mean_igpe)),
-      cell(formatGain(comparisons.fixed_vs_etas?.mean_igpe)), cell(formatGain(comparisons.gated_vs_etas?.mean_igpe)),
-      cell(formatGain(comparisons.gated_vs_safe?.mean_igpe)),
+      cell(formatDate(score.target_date)), cell(regionName(score.region_id)),
+      cell(score.revision === "final" ? "Final" : "Provisional"),
+      cell(formatInteger(score.event_count)), cell(formatGain(comparisons.gated_vs_etas?.mean_igpe)),
+      cell(formatP(score.csep?.challenger?.n_test_two_sided_p)),
+      cell(formatP(score.csep?.challenger?.l_test_lower_tail_p)),
+      cell(formatP(score.csep?.r_test?.one_sided_p)),
     );
     body.appendChild(row);
   });
@@ -403,6 +407,7 @@ function renderProtocol() {
   const facts = document.getElementById("protocol-facts");
   facts.replaceChildren();
   const mode = protocol.mode === "prospective" ? "365-day prospective test" : "14-day dry run";
+  setText("research-question", state.dashboard.research_question || "—");
   [["Identity", protocol.protocol_id], ["Mode", mode], ["Prospective claim", protocol.counts_toward_prospective_claim ? "Included" : "Not included"], ["Regions", String(state.dashboard.regions.length)], ["Final delay", `${protocol.settled_score_delay_days} days`]].forEach(([label, value]) => {
     const div = document.createElement("div"); const dt = document.createElement("dt"); const dd = document.createElement("dd"); dt.textContent = label; dd.textContent = value; div.append(dt, dd); facts.appendChild(div);
   });
@@ -414,6 +419,13 @@ function renderProtocol() {
     title.textContent = region.name; detail.textContent = depthLabel(region); copy.append(title, detail);
     const magnitude = document.createElement("span"); magnitude.textContent = `M≥${region.minimum_magnitude.toFixed(1)}`;
     item.append(copy, magnitude); regions.appendChild(item);
+  });
+  const ranges = document.getElementById("parameter-ranges");
+  ranges.replaceChildren();
+  Object.entries(state.dashboard.parameter_reporting?.etas_typical_ranges || {}).forEach(([name, value]) => {
+    const div = document.createElement("div"); const dt = document.createElement("dt"); const dd = document.createElement("dd");
+    dt.textContent = name; dd.textContent = `${Number(value[0]).toPrecision(4)} – ${Number(value[1]).toPrecision(4)}`;
+    div.append(dt, dd); ranges.appendChild(div);
   });
 }
 
@@ -437,9 +449,10 @@ function comparisonLabel(name) { return ({ gated_vs_etas: "Gated model / ETAS", 
 function cell(content) { const td = document.createElement("td"); if (content instanceof Node) td.appendChild(content); else td.textContent = content; return td; }
 function gainClass(value) { return value > 0 ? "gain-positive" : value < 0 ? "gain-negative" : "gain-neutral"; }
 function regionName(id) { return state.dashboard.regions.find((region) => region.region_id === id)?.name || id; }
-function shortRegion(name) { return name.includes("California") ? "California" : name.includes("Zealand") ? "New Zealand" : "Chile"; }
+function shortRegion(name) { return name.includes("California") ? "California" : name.includes("Zealand") ? "New Zealand" : name.includes("Japan") ? "Japan C" : "Chile"; }
 function depthLabel(region) { const min = region.minimum_depth_km ?? 0; return region.maximum_depth_km === null ? `${min}+ km depth` : `${min}–${region.maximum_depth_km} km depth`; }
 function formatGain(value) { return value === null || value === undefined ? "—" : formatSigned(value, 4); }
+function formatP(value) { return value === null || value === undefined ? "—" : Number(value).toFixed(3); }
 function formatSigned(value, digits = 3) { return `${value > 0 ? "+" : ""}${Number(value).toFixed(digits)}`; }
 function formatFactor(value) { return `${Number(value).toFixed(4)}×`; }
 function formatInteger(value) { return new Intl.NumberFormat("en-US").format(value); }

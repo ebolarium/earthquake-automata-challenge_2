@@ -27,6 +27,7 @@ from etas_challenge.prospective_scoring import score_california_grid  # noqa: E4
 from etas_challenge.prospective_scoring import score_regional_events  # noqa: E402
 from etas_challenge.training_matrix import GridDefinition  # noqa: E402
 from etas_challenge.training_matrix import sha256_file  # noqa: E402
+from etas_challenge.csep_tests import csep_daily_report  # noqa: E402
 
 
 PROTOCOL_PATH = configured_protocol_path(ROOT)
@@ -133,15 +134,18 @@ def scoring_snapshot(
     }
 
 
-def target_events(connection, snapshot_id: int, start, end) -> dict[str, np.ndarray]:
+def target_events(
+    connection, snapshot_id: int, start, end, minimum_magnitude: float
+) -> dict[str, np.ndarray]:
     rows = connection.execute(
         """
         SELECT source_event_id, origin_time, latitude, longitude, depth_km, magnitude
         FROM prospective.catalog_event_versions
         WHERE snapshot_id = %s AND origin_time >= %s AND origin_time < %s
+          AND magnitude >= %s
         ORDER BY origin_time, source_event_id
         """,
-        (snapshot_id, start, end),
+        (snapshot_id, start, end, minimum_magnitude),
     ).fetchall()
     event_ids = np.asarray([row[0] for row in rows])
     if len(np.unique(event_ids)) != len(event_ids):
@@ -214,19 +218,23 @@ def regional_geometry(region: dict):
 
 def compute_score(connection, client, storage, region: dict, run: dict, snapshot: dict):
     events = target_events(
-        connection, snapshot["snapshot_id"], run["target_start"], run["target_end"]
+        connection, snapshot["snapshot_id"], run["target_start"], run["target_end"],
+        region["minimum_magnitude"],
     )
     artifacts = forecast_grids(connection, client, storage, run["run_id"], region)
     baseline_record = artifacts[region["baseline_model_id"]]
     challenger_record = artifacts[region["challenger_model_id"]]
     auxiliary = None
+    csep = None
     with np.load(io.BytesIO(baseline_record["payload"]), allow_pickle=False) as baseline:
         with np.load(io.BytesIO(challenger_record["payload"]), allow_pickle=False) as challenger:
             if region["region_id"] == "california-relm":
                 grid = GridDefinition.load(ROOT / region["geometry"]["path"])
                 cells = grid.cell_indexes(events["longitudes"], events["latitudes"])
+                baseline_daily = np.asarray(baseline["daily_rates"])
+                challenger_daily = np.asarray(challenger["daily_rates"])
                 score = score_california_grid(
-                    cells, baseline["daily_rates"], challenger["daily_rates"]
+                    cells, baseline_daily, challenger_daily
                 )
                 if "safe_daily_rates" in challenger.files:
                     rates = {
@@ -262,6 +270,45 @@ def compute_score(connection, client, storage, region: dict, run: dict, snapshot
                             np.count_nonzero(challenger["active_support"])
                         ),
                     }
+            elif "daily_rates" in baseline.files and "daily_rates" in challenger.files:
+                grid = regional_geometry(region)
+                cells = grid.cells(events["latitudes"], events["longitudes"])
+                baseline_daily = np.asarray(baseline["daily_rates"])
+                challenger_daily = np.asarray(challenger["daily_rates"])
+                score = score_california_grid(cells, baseline_daily, challenger_daily)
+                rates = {
+                    "etas": baseline_daily[cells],
+                    "safe": np.asarray(challenger["safe_daily_rates"])[cells],
+                    "fixed": np.asarray(challenger["fixed_daily_rates"])[cells],
+                    "gated": challenger_daily[cells],
+                }
+                def comparison(numerator: str, denominator: str) -> dict:
+                    gains = np.log(rates[numerator] / rates[denominator])
+                    return {
+                        "events": int(len(gains)),
+                        "total_gain": float(np.sum(gains)),
+                        "mean_igpe": None if not len(gains) else float(np.mean(gains)),
+                        "event_gains": gains.tolist(),
+                    }
+                auxiliary = {
+                    "model_event_rates": {
+                        name: values.tolist() for name, values in rates.items()
+                    },
+                    "comparisons": {
+                        "safe_vs_etas": comparison("safe", "etas"),
+                        "fixed_vs_etas": comparison("fixed", "etas"),
+                        "gated_vs_etas": comparison("gated", "etas"),
+                        "fixed_vs_safe": comparison("fixed", "safe"),
+                        "gated_vs_safe": comparison("gated", "safe"),
+                    },
+                    "gate_weight": float(np.asarray(challenger["gate_weight"])),
+                    "gate_log_bayes_factor": float(
+                        np.asarray(challenger["gate_log_bayes_factor"])
+                    ),
+                    "active_support_cells": int(
+                        np.count_nonzero(challenger["active_support"])
+                    ),
+                }
             else:
                 grid = regional_geometry(region)
                 cells = grid.cells(events["latitudes"], events["longitudes"])
@@ -290,6 +337,13 @@ def compute_score(connection, client, storage, region: dict, run: dict, snapshot
                         magnitude_reference=etas_model["magnitude_reference"],
                         etas_parameters=etas_model["parameters"],
                     )
+            if "daily_rates" in baseline.files and "daily_rates" in challenger.files:
+                csep = csep_daily_report(
+                    cells,
+                    np.asarray(baseline["daily_rates"]),
+                    np.asarray(challenger["daily_rates"]),
+                    identity=f"{run['run_id']}:{snapshot['snapshot_id']}",
+                )
     summary = score.summary()
     metrics = {
         "schema_version": 1,
@@ -318,6 +372,8 @@ def compute_score(connection, client, storage, region: dict, run: dict, snapshot
     }
     if auxiliary is not None:
         metrics["multi_model"] = auxiliary
+    if csep is not None:
+        metrics["csep"] = csep
     return summary, metrics
 
 

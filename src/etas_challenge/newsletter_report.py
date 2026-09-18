@@ -41,8 +41,8 @@ def render_daily_report(
     mean = dashboard["provisional"]["mean_igpe"]
     factor = None if mean is None else math.exp(mean)
     subject = (
-        f"Evidence-Gated Forecast Daily Status | {report_date.isoformat()}"
-        if english else f"Kanıt Kapılı Tahmin Durumu | {report_date.isoformat()}"
+        f"Multi-Region ETAS Test Daily Status | {report_date.isoformat()}"
+        if english else f"Çok Bölgeli ETAS Test Durumu | {report_date.isoformat()}"
     )
     labels = {
         "title": "Prospective test daily report" if english else "Prospektif test günlük raporu",
@@ -74,7 +74,7 @@ def render_daily_report(
         if scores else f"<p style=\"margin-top:24px;color:#68736f\">{labels['no_scores']}</p>"
     )
     html_body = f"""<!doctype html><html><body style="margin:0;background:#f4f6f5;color:#17201e;font-family:Arial,sans-serif">
-<div style="max-width:620px;margin:0 auto;padding:30px 18px"><p style="font-size:10px;color:#087f7a;font-weight:700">EVIDENCE-GATED FORECAST TEST · {report_date.isoformat()}</p>
+<div style="max-width:620px;margin:0 auto;padding:30px 18px"><p style="font-size:10px;color:#087f7a;font-weight:700">MULTI-REGION ETAS PROSPECTIVE TEST · {report_date.isoformat()}</p>
 <h1 style="font-size:24px;margin:8px 0 4px">{labels['title']}</h1><p style="margin:0 0 22px;color:{'#27835b' if status_ok else '#cf5b4c'};font-weight:700">{labels['status']}</p>
 <table style="width:100%;border-collapse:collapse;background:#fff;font-size:12px"><tbody>
 <tr><td style="padding:10px;border-bottom:1px solid #d6dedb;color:#68736f">{labels['target']}</td><td style="padding:10px;border-bottom:1px solid #d6dedb;text-align:right;font-weight:700">{html.escape(str(dashboard.get('latest_target_start') or '—')[:10])}</td></tr>

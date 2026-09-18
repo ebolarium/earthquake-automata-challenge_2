@@ -20,20 +20,32 @@ class BootstrapCatalog:
     magnitudes: np.ndarray
 
 
-def selected_bootstrap_snapshots(connection, region_id: str, start, cutoff) -> list[dict]:
+def filter_catalog(catalog: BootstrapCatalog, minimum_magnitude: float) -> BootstrapCatalog:
+    selected = np.asarray(catalog.magnitudes) >= float(minimum_magnitude)
+    return BootstrapCatalog(
+        catalog.snapshot_ids,
+        catalog.event_ids[selected], catalog.origin_time_ns[selected],
+        catalog.latitudes[selected], catalog.longitudes[selected],
+        catalog.depths_km[selected], catalog.magnitudes[selected],
+    )
+
+
+def selected_bootstrap_snapshots(
+    connection, protocol_id: str, region_id: str, start, cutoff
+) -> list[dict]:
     rows = connection.execute(
         """
         SELECT DISTINCT ON (source_start_at, source_cutoff_at)
                snapshot_id, source_start_at, source_cutoff_at, event_count,
                artifact_key, content_sha256
         FROM prospective.catalog_snapshots
-        WHERE region_id = %s
+        WHERE protocol_id = %s AND region_id = %s
           AND collection_kind = 'bootstrap'
           AND source_start_at >= %s
           AND source_cutoff_at <= %s
         ORDER BY source_start_at, source_cutoff_at, captured_at DESC, snapshot_id DESC
         """,
-        (region_id, start, cutoff),
+        (protocol_id, region_id, start, cutoff),
     ).fetchall()
     return [
         {
@@ -143,13 +155,23 @@ def validate_state_artifact(
     regional_names = {
         "event_etas_rates", "event_background_probabilities", "event_cells"
     }
-    evidence_names = {
-        "background_root_days", "background_root_values", "gate_log_bayes_factor"
+    evidence_names = (
+        {"gate_log_bayes_factor"}
+        if regional else
+        {"background_root_days", "background_root_values", "gate_log_bayes_factor"}
+    )
+    context_names = {
+        "context_event_ids", "context_origin_time_ns", "context_latitudes",
+        "context_longitudes", "context_depths_km", "context_magnitudes",
     }
+    present_context = context_names & set(arrays.files)
+    if present_context and present_context != context_names:
+        raise ValueError("state feature-context arrays are incomplete")
     expected_names = (
         common
         | (regional_names if regional else set())
         | (evidence_names if evidence_gate else set())
+        | present_context
     )
     if set(arrays.files) != expected_names:
         raise ValueError("state artifact arrays disagree with region contract")
@@ -174,21 +196,22 @@ def validate_state_artifact(
         raise ValueError("state CH-008 model hash disagrees with manifest")
 
     if evidence_gate:
-        root_days = np.asarray(arrays["background_root_days"])
-        root_values = np.asarray(arrays["background_root_values"])
         gate_evidence = np.asarray(arrays["gate_log_bayes_factor"])
-        if (
-            root_days.ndim != 1
-            or root_values.ndim != 2
-            or root_values.shape[0] != len(root_days)
-            or not len(root_days)
-            or np.any(np.diff(root_days.astype(np.int64)) <= 0)
-            or np.any(~np.isfinite(root_values))
-            or np.any(root_values < 0)
-            or gate_evidence.shape != ()
-            or not np.isfinite(float(gate_evidence))
-        ):
+        if gate_evidence.shape != () or not np.isfinite(float(gate_evidence)):
             raise ValueError("invalid evidence-gate state arrays")
+        if not regional:
+            root_days = np.asarray(arrays["background_root_days"])
+            root_values = np.asarray(arrays["background_root_values"])
+            if (
+                root_days.ndim != 1
+                or root_values.ndim != 2
+                or root_values.shape[0] != len(root_days)
+                or not len(root_days)
+                or np.any(np.diff(root_days.astype(np.int64)) <= 0)
+                or np.any(~np.isfinite(root_values))
+                or np.any(root_values < 0)
+            ):
+                raise ValueError("invalid evidence-gate root history")
 
     event_ids = np.asarray(arrays["event_ids"])
     event_count = len(event_ids)
@@ -204,6 +227,13 @@ def validate_state_artifact(
         raise ValueError("state event arrays disagree")
     if event_ids.shape != (event_count,) or len(np.unique(event_ids)) != event_count:
         raise ValueError("state event IDs are not unique")
+    if present_context:
+        context_count = len(np.asarray(arrays["context_event_ids"]))
+        for name in context_names - {"context_event_ids"}:
+            if np.asarray(arrays[name]).shape != (context_count,):
+                raise ValueError("state feature-context arrays disagree")
+        if context_count < event_count:
+            raise ValueError("feature context cannot contain fewer events than target history")
     origin_time_ns = event_arrays["origin_time_ns"].astype(np.int64, copy=False)
     if np.any(np.diff(origin_time_ns) < 0):
         raise ValueError("state events are not time ordered")

@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "model_id": "multi-region-spatial-correction-v1",
+  "public_name": "Causal Spatial Correction",
+  "analysis_role": "frozen_365_day_prospective_challenger",
+  "safe_expert": {
+    "california": "supported-neighbor renewal correction",
+    "external_regions": "exposure-normalized renewal correction",
+    "california_parameters": {
+      "acceleration_support_power": 0.714811576419,
+      "acceleration_additive_mix": 0.0797456474975,
+      "residual_scale": 0.742341913469
+    }
+  },
+  "fixed_expert": {
+    "active_etas_quantile": 0.99,
+    "mixture_fraction": 0.5,
+    "inactive_cell_contract": "exact safe-expert rate",
+    "daily_count_contract": "exact ETAS expected count"
+  },
+  "evidence_gate": {
+    "alpha": 0.05,
+    "bayes_factor_hurdle": 20.0,
+    "initial_log_bayes_factor": 0.0,
+    "same_day_updates": false,
+    "historical_evidence_carried_into_prospective_start": false
+  },
+  "regions": {
+    "california-relm": {
+      "weights_path": "models/evidence-gate/california-causal-spatial-ensemble-v1.npz",
+      "weights_sha256": "6f5a8905f8d26bbb32c1a9c97f818f42ab26b03cf5fc9f0528e8c63d8af263de",
+      "context_events": 256,
+      "candidate_batch_size": 512,
+      "frame": {
+        "center_latitude": 34.6677,
+        "center_longitude": -118.3700768178185,
+        "along_vector": [-0.6335215848796946, 0.773725016715577],
+        "cross_vector": [-0.773725016715577, -0.6335215848796946],
+        "along_scale_km": 408.7560725167186,
+        "cross_scale_km": 121.91971249118637,
+        "median_gap_seconds": 13275.56,
+        "completeness_magnitude": 2.5,
+        "maximum_depth_km": 100.0
+      }
+    },
+    "new-zealand-csep": {
+      "weights_path": "models/evidence-gate/new-zealand-causal-spatial-ensemble-v1.npz",
+      "weights_sha256": "eead28818625757d6fbd66c7076d3cfe03c2c14174b2d1670d36ae6d57f1526f",
+      "context_events": 256,
+      "candidate_batch_size": 512,
+      "frame": {
+        "center_latitude": -43.039500000000004,
+        "center_longitude": 171.60302982408737,
+        "along_vector": [0.7445785255879017, 0.6675348824094112],
+        "cross_vector": [-0.6675348824094112, 0.7445785255879017],
+        "along_scale_km": 500.42773037720326,
+        "cross_scale_km": 85.83205332267804,
+        "median_gap_seconds": 64124.0,
+        "completeness_magnitude": 4.0,
+        "maximum_depth_km": 40.0
+      }
+    },
+    "chile-subduction": {
+      "weights_path": "models/evidence-gate/chile-causal-spatial-ensemble-v1.npz",
+      "weights_sha256": "e6061a9cfaae4a51be6f912c5e8f100309db57622d7a324be3d8efbb328d5e00",
+      "context_events": 256,
+      "candidate_batch_size": 512,
+      "frame": {
+        "center_latitude": -32.8685,
+        "center_longitude": -71.82740540037419,
+        "along_vector": [0.11015458302285737, 0.9939144670639726],
+        "cross_vector": [-0.9939144670639726, 0.11015458302285737],
+        "along_scale_km": 1096.620889533094,
+        "cross_scale_km": 111.29655192368801,
+        "median_gap_seconds": 23950.0,
+        "completeness_magnitude": 4.5,
+        "maximum_depth_km": 100.0
+      }
+    },
+    "japan-c": {
+      "weights_path": "models/evidence-gate/japan-c-causal-spatial-ensemble-v1.npz",
+      "weights_sha256": "f8d724548274d5a3c359d0527e295ea7c9402784fcec188693740af0bf4bcb1f",
+      "context_events": 256,
+      "candidate_batch_size": 512,
+      "frame": {
+        "center_latitude": 41.5933335,
+        "center_longitude": 145.25414358767094,
+        "along_vector": [0.604091849353866, 0.7969146990388783],
+        "cross_vector": [-0.7969146990388783, 0.604091849353866],
+        "along_scale_km": 468.7774170497429,
+        "cross_scale_km": 113.88060834559724,
+        "median_gap_seconds": 9358.23,
+        "completeness_magnitude": 3.0,
+        "maximum_depth_km": 100.0
+      }
+    }
+  },
+  "claim_boundary": "All weights, regional frames, support rules and gate parameters are frozen before the first four-region forecast. Every target region was excluded from the corresponding neural training ensemble."
+}

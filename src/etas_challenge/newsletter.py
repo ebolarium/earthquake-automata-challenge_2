@@ -93,9 +93,9 @@ class ResendClient:
 
 def confirmation_message(sender: str, email: str, locale: str, confirm_url: str) -> dict:
     if locale == "en":
-        subject = "Confirm your Evidence-Gated Forecast daily report subscription"
+        subject = "Confirm your Multi-Region ETAS Test daily report subscription"
         title = "Confirm your subscription"
-        copy = "Use the button below to receive the Evidence-Gated Forecast Test status report each morning."
+        copy = "Use the button below to receive the Multi-Region ETAS prospective test status report each morning."
         action = "Confirm email address"
         ignore = "If you did not request this, you can ignore this email."
     else:
@@ -128,7 +128,7 @@ class NewsletterService:
         )
         self.base_url = public_base_url(configured_base) if configured_base else None
         self.sender = sender or os.environ.get(
-            "NEWSLETTER_FROM", formataddr(("Evidence-Gated Forecast Test", "hello@bboga.com"))
+            "NEWSLETTER_FROM", formataddr(("Multi-Region ETAS Test", "hello@bboga.com"))
         )
         configured_key = api_key if api_key is not None else os.environ.get("RESEND_API_KEY", "")
         self.client = client or (ResendClient(configured_key) if configured_key else None)

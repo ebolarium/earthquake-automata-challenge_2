@@ -314,8 +314,8 @@ def handler_factory(
                 self._html_message("Bağlantı geçersiz", "The link is invalid.", error=True)
                 return
             action = f"/newsletter/unsubscribe?token={html.escape(token, quote=True)}"
-            body = f"""<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>CH-008 Newsletter</title><link rel="stylesheet" href="/styles.css"></head>
-<body><main class="subscription-page"><h1>Abonelikten çık</h1><p>CH-008 günlük durum raporlarını artık almak istemiyor musun?</p><form method="post" action="{action}"><button>Aboneliği sonlandır</button></form><small>Unsubscribe from the CH-008 daily status report.</small></main></body></html>"""
+            body = f"""<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Multi-Region ETAS Newsletter</title><link rel="stylesheet" href="/styles.css"></head>
+<body><main class="subscription-page"><h1>Abonelikten çık</h1><p>Çok bölgeli ETAS testinin günlük raporlarını artık almak istemiyor musun?</p><form method="post" action="{action}"><button>Aboneliği sonlandır</button></form><small>Unsubscribe from the Multi-Region ETAS Test daily status report.</small></main></body></html>"""
             self._html_response(HTTPStatus.OK, body)
 
         def _serve_newsletter_unsubscribe(self, *, one_click):
@@ -339,7 +339,7 @@ def handler_factory(
 
         def _html_message(self, title, copy, error=False):
             body = f"""<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{html.escape(title)}</title><link rel="stylesheet" href="/styles.css"></head>
-<body><main class="subscription-page {'error' if error else ''}"><span>CH-008 PROSPECTIVE TEST</span><h1>{html.escape(title)}</h1><p>{html.escape(copy)}</p><a href="/">Dashboard</a></main></body></html>"""
+<body><main class="subscription-page {'error' if error else ''}"><span>MULTI-REGION ETAS PROSPECTIVE TEST</span><h1>{html.escape(title)}</h1><p>{html.escape(copy)}</p><a href="/">Dashboard</a></main></body></html>"""
             self._html_response(HTTPStatus.OK, body)
 
         def _html_response(self, status, body):

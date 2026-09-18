@@ -24,8 +24,8 @@ class Connection:
 
 
 class ProspectiveRuntimeTest(unittest.TestCase):
-    def test_dry_run_is_default_until_formal_protocol_is_active(self):
-        self.assertEqual(active_protocol_id(Connection(None)), DRY_RUN_PROTOCOL_ID)
+    def test_formal_protocol_is_default_for_fresh_multiregion_deployment(self):
+        self.assertEqual(active_protocol_id(Connection(None)), PROSPECTIVE_PROTOCOL_ID)
 
     def test_active_formal_protocol_is_selected(self):
         self.assertEqual(

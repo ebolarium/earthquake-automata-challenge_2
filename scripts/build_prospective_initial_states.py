@@ -26,6 +26,7 @@ from etas_challenge.prospective_bootstrap import auxiliary_start, utc_timestamp 
 from etas_challenge.prospective_bootstrap import validate_contiguous_windows  # noqa: E402
 from etas_challenge.prospective_protocol import validate_protocol  # noqa: E402
 from etas_challenge.prospective_protocol import configured_protocol_path  # noqa: E402
+from etas_challenge.prospective_protocol import artifact_lane  # noqa: E402
 from etas_challenge.prospective_context import load_california_runtime_context  # noqa: E402
 from etas_challenge.prospective_etas import california_daily_etas_grid  # noqa: E402
 from etas_challenge.prospective_state import load_bootstrap_catalog  # noqa: E402
@@ -33,6 +34,7 @@ from etas_challenge.prospective_replay import replay_regional_ch008_state  # noq
 from etas_challenge.prospective_state import catalog_history_sha256  # noqa: E402
 from etas_challenge.prospective_state import model_state_id  # noqa: E402
 from etas_challenge.prospective_state import selected_bootstrap_snapshots  # noqa: E402
+from etas_challenge.prospective_state import filter_catalog  # noqa: E402
 from etas_challenge.training_matrix import sha256_file, write_deterministic_npz  # noqa: E402
 
 
@@ -81,6 +83,17 @@ def common_arrays(catalog) -> dict[str, np.ndarray]:
         "longitudes": catalog.longitudes,
         "depths_km": catalog.depths_km,
         "magnitudes": catalog.magnitudes,
+    }
+
+
+def feature_context_arrays(catalog) -> dict[str, np.ndarray]:
+    return {
+        "context_event_ids": catalog.event_ids,
+        "context_origin_time_ns": catalog.origin_time_ns,
+        "context_latitudes": catalog.latitudes,
+        "context_longitudes": catalog.longitudes,
+        "context_depths_km": catalog.depths_km,
+        "context_magnitudes": catalog.magnitudes,
     }
 
 
@@ -160,7 +173,12 @@ def california_arrays(
     }
 
 
-def regional_arrays(region: dict, catalog, as_of, etas_model: dict, parent: dict, ch008: dict):
+def regional_arrays(
+    region: dict, catalog, as_of, etas_model: dict, parent: dict, ch008: dict,
+    evidence_gate: bool,
+):
+    context_catalog = catalog
+    catalog = filter_catalog(catalog, region["minimum_magnitude"])
     grid = regional_geometry(region)
     times_days = catalog.origin_time_ns.astype(np.float64) / (86_400 * 1_000_000_000)
     rates = event_rates(
@@ -199,6 +217,10 @@ def regional_arrays(region: dict, catalog, as_of, etas_model: dict, parent: dict
         "ch008_exposure": state.exposure,
         "ch008_roots": state.roots,
     }
+    if region.get("catalog_minimum_magnitude", region["minimum_magnitude"]) < region["minimum_magnitude"]:
+        arrays.update(feature_context_arrays(context_catalog))
+    if evidence_gate:
+        arrays["gate_log_bayes_factor"] = np.asarray(0.0, dtype=np.float64)
     return arrays, {
         "ch008_state_source": "full_native_bootstrap_replay_before_as_of",
         "etas_history_source": "prospective_bootstrap_before_as_of",
@@ -255,6 +277,7 @@ def main() -> int:
     import psycopg
 
     protocol = validate_protocol(PROTOCOL_PATH, ROOT)
+    lane = artifact_lane(protocol)
     runtime = json.loads(RUNTIME_PATH.read_text(encoding="utf-8"))
     selected = set(args.regions or [region["region_id"] for region in protocol["regions"]])
     known = {region["region_id"] for region in protocol["regions"]}
@@ -276,7 +299,8 @@ def main() -> int:
                 continue
             start = auxiliary_start(region, ROOT)
             snapshots = selected_bootstrap_snapshots(
-                connection, region["region_id"], start, args.catalog_cutoff
+                connection, protocol["protocol_id"], region["region_id"], start,
+                args.catalog_cutoff,
             )
             validate_contiguous_windows(
                 [(item["start"], item["cutoff"]) for item in snapshots],
@@ -285,7 +309,11 @@ def main() -> int:
             )
             snapshot_ids = [item["snapshot_id"] for item in snapshots]
             catalog = load_bootstrap_catalog(connection, snapshot_ids, args.as_of)
-            catalog_sha = catalog_history_sha256(catalog)
+            identity_catalog = (
+                catalog if region["region_id"] == "california-relm"
+                else filter_catalog(catalog, region["minimum_magnitude"])
+            )
+            catalog_sha = catalog_history_sha256(identity_catalog)
             etas_path = ROOT / region["etas_model_path"]
             etas_model = json.loads(etas_path.read_text(encoding="utf-8"))
             etas_sha = sha256_file(etas_path)
@@ -300,7 +328,8 @@ def main() -> int:
                 )
             else:
                 arrays, method = regional_arrays(
-                    region, catalog, args.as_of, etas_model, parent, ch008
+                    region, catalog, args.as_of, etas_model, parent, ch008,
+                    protocol.get("forecast_family") == "causal_evidence_gate",
                 )
             arrays.update(
                 {
@@ -314,7 +343,7 @@ def main() -> int:
             artifact_sha = hashlib.sha256(artifact).hexdigest()
             stem = args.as_of.strftime("%Y%m%dT%H%M%SZ")
             artifact_key = object_key(
-                storage, f"dry-run/states/{region['region_id']}/{stem}-{artifact_sha}.npz"
+                storage, f"{lane}/states/{region['region_id']}/{stem}-{artifact_sha}.npz"
             )
             put_verified_bytes(storage, artifact_key, artifact, "application/octet-stream", client)
             manifest = {
@@ -327,7 +356,7 @@ def main() -> int:
                 "history_predicate": "origin_time < as_of",
                 "snapshot_ids": snapshot_ids,
                 "catalog_history_sha256": catalog_sha,
-                "events": len(catalog.event_ids),
+                "events": len(arrays["event_ids"]),
                 "baseline_model_id": region["baseline_model_id"],
                 "baseline_model_sha256": etas_sha,
                 "challenger_model_id": region["challenger_model_id"],
@@ -344,7 +373,7 @@ def main() -> int:
             ).encode("utf-8")
             manifest_sha = hashlib.sha256(manifest_bytes).hexdigest()
             manifest_key = object_key(
-                storage, f"dry-run/states/{region['region_id']}/{stem}-{state_id}.json"
+                storage, f"{lane}/states/{region['region_id']}/{stem}-{state_id}.json"
             )
             put_verified_bytes(storage, manifest_key, manifest_bytes, "application/json", client)
             record = {

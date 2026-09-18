@@ -566,6 +566,8 @@ def run_protocol(
         item["status"] in {"publication_missed", "launch_guard_error"}
         for item in results
     )
+    if not failed and protocol["mode"] == "prospective" and set(selected) == set(known):
+        activate_prospective(database_url, protocol["protocol_id"], issue_time)
     print(json.dumps({
         "status": "failed" if failed else "ok",
         "protocol_id": protocol["protocol_id"],
@@ -616,16 +618,69 @@ def activate_dry_run(
             raise RuntimeError(f"dry-run protocol cannot run from status {row[0]}")
 
 
+def activate_prospective(database_url: str, protocol_id: str, issue_time: datetime) -> None:
+    """Start the 365-day clock only after the first complete four-region issue."""
+
+    import psycopg
+
+    issue = issue_time.astimezone(timezone.utc)
+    first_target = issue.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(
+        days=1
+    )
+    with psycopg.connect(database_url) as connection:
+        connection.execute(
+            "SELECT pg_advisory_xact_lock(hashtext(%s))", (f"{protocol_id}:activation",)
+        )
+        row = connection.execute(
+            "SELECT status, planned_start FROM prospective.protocols WHERE protocol_id = %s",
+            (protocol_id,),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError("prospective protocol was not seeded")
+        if row[0] == "active":
+            return
+        if row[0] != "draft":
+            raise RuntimeError(f"prospective protocol cannot activate from status {row[0]}")
+        complete_issue = connection.execute(
+            """
+            SELECT target_start
+            FROM prospective.forecast_runs
+            WHERE protocol_id = %s AND status = 'published'
+            GROUP BY target_start
+            HAVING count(DISTINCT region_id) = 4
+            ORDER BY target_start
+            LIMIT 1
+            """,
+            (protocol_id,),
+        ).fetchone()
+        if complete_issue is None or complete_issue[0] > first_target:
+            raise RuntimeError("formal activation requires one atomic four-region issue")
+        first_target = complete_issue[0]
+        connection.execute(
+            """
+            UPDATE prospective.protocols
+            SET status = 'completed', completed_at = %s
+            WHERE status IN ('active', 'dry_run') AND protocol_id <> %s
+            """,
+            (issue, protocol_id),
+        )
+        connection.execute(
+            """
+            UPDATE prospective.protocols
+            SET status = 'active', planned_start = %s, activated_at = %s
+            WHERE protocol_id = %s AND status = 'draft'
+            """,
+            (first_target, issue, protocol_id),
+        )
+
+
 def main() -> int:
     args = parse_args()
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         raise SystemExit("DATABASE_URL is required")
     issue_time = (args.issue_time or datetime.now(timezone.utc)).astimezone(timezone.utc)
-    # This repository intentionally launches only the operational dry run.
-    # A claim-bearing protocol receives a separate immutable config and commit
-    # after the dry run completes; deployment alone cannot auto-promote it.
-    return run_protocol(args, database_url, issue_time, DRY_RUN_PROTOCOL_PATH)
+    return run_protocol(args, database_url, issue_time, PROSPECTIVE_PROTOCOL_PATH)
 
 
 if __name__ == "__main__":

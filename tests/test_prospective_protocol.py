@@ -46,6 +46,17 @@ class ProspectiveProtocolTest(unittest.TestCase):
             "2026-09-23",
         )
 
+    def test_multiregion_spatial_protocol_is_formal_and_has_four_regions(self):
+        path = self.root / "configs/prospective/multi-region-spatial-etas-prospective-v1.json"
+        protocol = validate_protocol(path, self.root)
+        self.assertEqual(protocol["mode"], "prospective")
+        self.assertEqual(protocol["duration_days"], 365)
+        self.assertEqual(
+            {region["region_id"] for region in protocol["regions"]},
+            {"california-relm", "new-zealand-csep", "chile-subduction", "japan-c"},
+        )
+        self.assertEqual(protocol["csep_evaluation"]["tests"], ["N-test", "L-test", "R-test"])
+
 
 if __name__ == "__main__":
     unittest.main()

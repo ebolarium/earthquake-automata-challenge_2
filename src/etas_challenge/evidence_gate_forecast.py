@@ -130,6 +130,11 @@ class NumpyFastSlowEnsemble:
         output = []
         for start in range(0, len(candidates), batch_size):
             batch = np.asarray(candidates[start : start + batch_size], dtype=np.float64)
+            batch = np.clip(
+                batch,
+                -float(member["coordinate_clip"]),
+                float(member["coordinate_clip"]),
+            )
             dynamic = self._encode(recent, batch, member) - self._encode(
                 slow, batch, member
             )

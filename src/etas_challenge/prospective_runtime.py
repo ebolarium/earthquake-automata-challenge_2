@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 DRY_RUN_PROTOCOL_ID = "evidence-gate-california-dry-run-v1"
-PROSPECTIVE_PROTOCOL_ID = "evidence-gate-california-prospective-v1"
+PROSPECTIVE_PROTOCOL_ID = "multi-region-spatial-etas-prospective-v1"
 DRY_RUN_PROTOCOL_PATH = Path("configs/prospective/evidence-gate-california-dry-run-v1.json")
-PROSPECTIVE_PROTOCOL_PATH = Path("configs/prospective/evidence-gate-california-prospective-v1.json")
+PROSPECTIVE_PROTOCOL_PATH = Path("configs/prospective/multi-region-spatial-etas-prospective-v1.json")
 LEGACY_PROTOCOL_PATHS = {
     "ch008-three-region-dry-run-v1": Path("configs/prospective/three-region-dry-run-v1.json"),
     "ch008-three-region-prospective-v1": Path("configs/prospective/ch008-three-region-prospective-v1.json"),
@@ -35,7 +35,7 @@ def active_protocol_id(connection) -> str:
         LIMIT 1
         """
     ).fetchone()
-    return DRY_RUN_PROTOCOL_ID if row is None else row[0]
+    return PROSPECTIVE_PROTOCOL_ID if row is None else row[0]
 
 
 def read_active_protocol_id(database_url: str) -> str:

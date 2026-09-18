@@ -15,6 +15,7 @@ import numpy as np
 from etas_challenge.prospective_daily import california_background_forecast
 from etas_challenge.prospective_daily import regional_background_forecast
 from etas_challenge.prospective_etas import california_daily_etas_grid
+from etas_challenge.prospective_etas import regional_daily_etas_grid
 from etas_challenge.prospective_replay import CH008State
 from etas_challenge.training_matrix import write_deterministic_npz
 from etas_challenge.evidence_gate_forecast import NumpyFastSlowEnsemble
@@ -107,9 +108,7 @@ def build_regional_artifacts(
         parent_parameters=parent_model["parameters"],
         ch008_parameters=ch008_model["parameters"],
     )
-    common = {
-        "cell_areas_km2": np.asarray(grid.areas_km2),
-    }
+    common = {"cell_areas_km2": np.asarray(grid.areas_km2)}
     if hasattr(grid, "latent_keys"):
         common["latent_keys"] = np.asarray(grid.latent_keys)
     else:
@@ -138,6 +137,130 @@ def build_regional_artifacts(
     )
 
 
+def regional_cell_centers(grid, geometry: dict) -> tuple[np.ndarray, np.ndarray]:
+    if hasattr(grid, "latent_keys"):
+        spacing = float(geometry["latent_spacing_degrees"])
+        return (
+            (np.asarray(grid.latent_keys[:, 1], dtype=float) + 0.5) * spacing,
+            (np.asarray(grid.latent_keys[:, 0], dtype=float) + 0.5) * spacing,
+        )
+    longitude, latitude = np.meshgrid(
+        (np.asarray(grid.longitude_edges[:-1]) + np.asarray(grid.longitude_edges[1:])) / 2.0,
+        (np.asarray(grid.latitude_edges[:-1]) + np.asarray(grid.latitude_edges[1:])) / 2.0,
+    )
+    return latitude.ravel(), longitude.ravel()
+
+
+def build_regional_evidence_gate_artifacts(
+    source,
+    *,
+    forecast_start: datetime,
+    grid,
+    geometry: dict,
+    etas_model: dict,
+    parent_model: dict,
+    ch008_model: dict,
+    evidence_region: dict,
+    ensemble: NumpyFastSlowEnsemble,
+) -> ForecastArtifactPair:
+    """Build the same frozen spatial correction on an external regional grid."""
+
+    background_pair = build_regional_artifacts(
+        source,
+        grid=grid,
+        etas_model=etas_model,
+        parent_model=parent_model,
+        ch008_model=ch008_model,
+    )
+    center_latitudes, center_longitudes = regional_cell_centers(grid, geometry)
+    etas_rates = regional_daily_etas_grid(
+        issue_time=np.datetime64(forecast_start.replace(tzinfo=None), "ns"),
+        history_origin_time_ns=np.asarray(source["origin_time_ns"]),
+        history_latitudes=np.asarray(source["latitudes"]),
+        history_longitudes=np.asarray(source["longitudes"]),
+        history_magnitudes=np.asarray(source["magnitudes"]),
+        candidate_latitudes=center_latitudes,
+        candidate_longitudes=center_longitudes,
+        cell_areas_km2=np.asarray(grid.areas_km2),
+        magnitude_reference=etas_model["magnitude_reference"],
+        parameters=etas_model["parameters"],
+        candidate_batch_size=int(evidence_region["candidate_batch_size"]),
+    )
+    baseline_background = background_pair.baseline_arrays["direct_background_mass"]
+    safe_background = background_pair.challenger_arrays["direct_background_mass"]
+    safe_rates = etas_rates + safe_background - baseline_background
+    frame_config = evidence_region["frame"]
+    frame = SeismicFrame(
+        center_latitude=frame_config["center_latitude"],
+        center_longitude=frame_config["center_longitude"],
+        along_vector=tuple(frame_config["along_vector"]),
+        cross_vector=tuple(frame_config["cross_vector"]),
+        along_scale_km=frame_config["along_scale_km"],
+        cross_scale_km=frame_config["cross_scale_km"],
+        median_gap_seconds=frame_config["median_gap_seconds"],
+    )
+    context_prefix = "context_" if "context_origin_time_ns" in source else ""
+    history_context = build_context(
+        frame,
+        np.asarray(source[context_prefix + "origin_time_ns"]),
+        np.asarray(source[context_prefix + "latitudes"]),
+        np.asarray(source[context_prefix + "longitudes"]),
+        np.asarray(source[context_prefix + "depths_km"]),
+        np.asarray(source[context_prefix + "magnitudes"]),
+        context_events=int(evidence_region["context_events"]),
+        completeness_magnitude=frame_config["completeness_magnitude"],
+        maximum_depth_km=frame_config["maximum_depth_km"],
+    )
+    candidates = project_locations(frame, center_latitudes, center_longitudes)
+    neural_rates = reallocate_rates(
+        etas_rates,
+        ensemble.logits(
+            history_context,
+            candidates,
+            batch_size=int(evidence_region["candidate_batch_size"]),
+        ),
+    )
+    gate = assemble_forecast(
+        etas_rates,
+        safe_rates,
+        neural_rates,
+        float(np.asarray(source["gate_log_bayes_factor"])),
+    )
+    common = {
+        key: value
+        for key, value in background_pair.baseline_arrays.items()
+        if key != "direct_background_mass"
+    }
+    expected = float(np.sum(etas_rates, dtype=np.float64))
+    return ForecastArtifactPair(
+        {**common, "daily_rates": etas_rates, "direct_background_mass": baseline_background},
+        {
+            **common,
+            "daily_rates": gate.gated_rates,
+            "safe_daily_rates": gate.safe_rates,
+            "fixed_daily_rates": gate.fixed_rates,
+            "neural_daily_rates": neural_rates,
+            "direct_background_mass": safe_background,
+            "ch008_score": background_pair.challenger_arrays["ch008_score"],
+            "active_support": gate.active_support.astype(np.uint8),
+            "gate_weight": np.asarray(gate.gate_weight),
+            "gate_log_bayes_factor": np.asarray(gate.log_bayes_factor),
+        },
+        {
+            "artifact_semantics": "one_day_expected_count_per_regional_cell",
+            "model_family": "causal_evidence_gated_spatial_forecast",
+            "cells": len(etas_rates),
+            "baseline_expected_count": expected,
+            "safe_expected_count": float(np.sum(gate.safe_rates)),
+            "fixed_expected_count": float(np.sum(gate.fixed_rates)),
+            "gated_expected_count": float(np.sum(gate.gated_rates)),
+            "paired_compensator_gain": 0.0,
+            "gate_weight": gate.gate_weight,
+            "gate_log_bayes_factor": gate.log_bayes_factor,
+            "gate_qualified": bool(gate.gate_weight > 0.0),
+            "active_support_cells": int(np.count_nonzero(gate.active_support)),
+        },
+    )
 def build_california_artifacts(
     source,
     *,
@@ -256,7 +379,9 @@ def build_california_evidence_gate_artifacts(
         random_seed=random_seed,
     )
     etas_rates = pair.baseline_arrays["daily_rates"]
-    safe_config = evidence_model["safe_expert"]
+    safe_config = evidence_model["safe_expert"].get(
+        "california_parameters", evidence_model["safe_expert"]
+    )
     causal_boundary = forecast_start - timedelta(days=1)
     issue_day = int(
         np.datetime64(causal_boundary.astimezone(timezone.utc).replace(tzinfo=None), "D")
@@ -275,7 +400,10 @@ def build_california_evidence_gate_artifacts(
         acceleration_additive_mix=safe_config["acceleration_additive_mix"],
         residual_scale=safe_config["residual_scale"],
     )
-    frame_config = evidence_model["neural_expert"]["frame"]
+    neural_config = evidence_model.get("neural_expert") or evidence_model["regions"][
+        "california-relm"
+    ]
+    frame_config = neural_config["frame"]
     frame = SeismicFrame(
         center_latitude=frame_config["center_latitude"],
         center_longitude=frame_config["center_longitude"],
@@ -292,7 +420,7 @@ def build_california_evidence_gate_artifacts(
         np.asarray(source["longitudes"]),
         np.asarray(source["depths_km"]),
         np.asarray(source["magnitudes"]),
-        context_events=int(evidence_model["neural_expert"]["context_events"]),
+        context_events=int(neural_config["context_events"]),
         completeness_magnitude=frame_config["completeness_magnitude"],
         maximum_depth_km=frame_config["maximum_depth_km"],
     )
@@ -303,7 +431,7 @@ def build_california_evidence_gate_artifacts(
         ensemble.logits(
             history_context,
             candidates,
-            batch_size=int(evidence_model["neural_expert"]["candidate_batch_size"]),
+            batch_size=int(neural_config["candidate_batch_size"]),
         ),
     )
     gate = assemble_forecast(

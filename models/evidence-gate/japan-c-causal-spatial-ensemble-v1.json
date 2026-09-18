@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "model_id": "japan-c-causal-spatial-ensemble-v1",
+  "training_contract": "leave-one-region-out; target region excluded",
+  "output": "models/evidence-gate/japan-c-causal-spatial-ensemble-v1.npz",
+  "output_sha256": "f8d724548274d5a3c359d0527e295ea7c9402784fcec188693740af0bf4bcb1f",
+  "sources": [
+    {
+      "seed": 14002,
+      "path": "artifacts/ch014-chronology-regularized-loro-v1/japan_c-relative-fast-slow.pt",
+      "sha256": "ddcdbf8eaa7b50c298639ac08e8c3210cfe9341a1265104f64b53c37a38d8759"
+    },
+    {
+      "seed": 14003,
+      "path": "artifacts/ch014-chronology-seed-14003-v1/japan_c-relative-fast-slow.pt",
+      "sha256": "fca2ea615ef377d01e14981a393d5db6770640be91a8e6c254a35e8e72636208"
+    },
+    {
+      "seed": 14004,
+      "path": "artifacts/ch014-chronology-seed-14004-v1/japan_c-relative-fast-slow.pt",
+      "sha256": "3b769bb9ea915001dae7b4566899e12235e19a88dfa362d9a5976f4091ecf7ba"
+    }
+  ],
+  "conversion": "lossless tensor-to-NumPy export; inference equivalence tested separately"
+}

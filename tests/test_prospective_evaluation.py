@@ -70,7 +70,7 @@ class ProspectiveEvaluationTest(unittest.TestCase):
         )
         self.assertEqual(
             result["live_results"]["descriptive_result"]["descriptive_direction"],
-            "ch008_higher_observed_event_density",
+            "challenger_higher_observed_event_density",
         )
         self.assertEqual(
             result["primary_metric"]["event_formula"],

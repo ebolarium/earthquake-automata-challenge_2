@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, time, timedelta, timezone
 import math
 
+from scipy.stats import norm, poisson
+
 
 def _iso(value):
     return None if value is None else value.isoformat()
@@ -53,6 +55,46 @@ def _multi_model_summary(rows: list[dict], revision: str) -> dict:
             "active_support_cells": latest["multi_model"]["active_support_cells"],
         },
     }
+
+
+def _csep_summary(rows: list[dict], revision: str) -> dict | None:
+    selected = [
+        row for row in rows if row["revision"] == revision and row.get("csep")
+    ]
+    if not selected:
+        return None
+    output = {"method": "conditional_poisson_spatial_csep", "days": len(selected)}
+    for model in ("baseline", "challenger"):
+        reports = [row["csep"][model] for row in selected]
+        observed_count = sum(item["observed_count"] for item in reports)
+        expected_count = sum(item["expected_count"] for item in reports)
+        lower = float(poisson.cdf(observed_count, expected_count))
+        upper = float(poisson.sf(observed_count - 1, expected_count))
+        observed_ll = sum(item["observed_log_likelihood"] for item in reports)
+        simulated_mean = sum(item["l_test_simulated_mean"] for item in reports)
+        simulated_variance = sum(item["l_test_simulated_variance"] for item in reports)
+        output[model] = {
+            "observed_count": observed_count,
+            "expected_count": expected_count,
+            "n_test_two_sided_p": min(1.0, 2.0 * min(lower, upper)),
+            "observed_log_likelihood": observed_ll,
+            "l_test_lower_tail_p": (
+                None if simulated_variance <= 0 else float(
+                    norm.cdf((observed_ll - simulated_mean) / math.sqrt(simulated_variance))
+                )
+            ),
+        }
+    r_reports = [row["csep"]["r_test"] for row in selected]
+    observed = sum(item["observed_log_likelihood_ratio"] for item in r_reports)
+    null_mean = sum(item["etas_null_mean"] for item in r_reports)
+    null_variance = sum(item["etas_null_variance"] for item in r_reports)
+    z_score = None if null_variance <= 0 else (observed - null_mean) / math.sqrt(null_variance)
+    output["r_test"] = {
+        "observed_log_likelihood_ratio": observed,
+        "z_score": z_score,
+        "one_sided_p": None if z_score is None else float(norm.sf(z_score)),
+    }
+    return output
 
 
 def _dry_run_progress(
@@ -226,6 +268,7 @@ def build_dashboard(connection, protocol_id: str, now=None) -> dict:
             "multi_model": (
                 row[7].get("multi_model") if len(row) > 7 and row[7] else None
             ),
+            "csep": row[7].get("csep") if len(row) > 7 and row[7] else None,
         }
         for row in score_rows
     ]
@@ -329,6 +372,10 @@ def build_dashboard(connection, protocol_id: str, now=None) -> dict:
                 "provisional": _multi_model_summary(region_scores, "provisional"),
                 "final": _multi_model_summary(region_scores, "final"),
             },
+            "csep": {
+                "provisional": _csep_summary(region_scores, "provisional"),
+                "final": _csep_summary(region_scores, "final"),
+            },
             "operations": operational.get(region_id, {
                 "primary_eligible": True,
                 "missed_region_days": 0,
@@ -423,6 +470,13 @@ def build_dashboard(connection, protocol_id: str, now=None) -> dict:
             "provisional": _multi_model_summary(scoped_scores, "provisional"),
             "final": _multi_model_summary(scoped_scores, "final"),
         },
+        "csep": {
+            "provisional": _csep_summary(scoped_scores, "provisional"),
+            "final": _csep_summary(scoped_scores, "final"),
+        },
+        "parameter_reporting": config.get("parameter_reporting"),
+        "research_question": config.get("research_question"),
+        "public_title": config.get("public_title"),
         "regions": regions,
         "daily_scores": scoped_scores,
     }

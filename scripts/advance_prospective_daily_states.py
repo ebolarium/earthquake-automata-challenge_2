@@ -34,6 +34,8 @@ from etas_challenge.prospective_state import BootstrapCatalog  # noqa: E402
 from etas_challenge.prospective_state import catalog_history_sha256  # noqa: E402
 from etas_challenge.prospective_state import model_state_id  # noqa: E402
 from etas_challenge.prospective_context import load_california_runtime_context  # noqa: E402
+from etas_challenge.fern_ch008 import regional_grid  # noqa: E402
+from etas_challenge.masked_grid import masked_grid  # noqa: E402
 from etas_challenge.training_matrix import sha256_file  # noqa: E402
 
 
@@ -69,7 +71,8 @@ def load_parent(connection, client, storage, protocol_id: str, region_id: str, a
 
 
 def append_completed_day(
-    connection, source, protocol_id: str, region_id: str, start, end, cutoff
+    connection, source, protocol_id: str, region_id: str, start, end, cutoff,
+    minimum_magnitude: float | None = None,
 ):
     row = connection.execute(
         """
@@ -97,6 +100,8 @@ def append_completed_day(
         """,
         (snapshot_id, start, end),
     ).fetchall()
+    if minimum_magnitude is not None:
+        rows = [item for item in rows if float(item[5]) >= minimum_magnitude]
     old_ids = np.asarray(source["event_ids"])
     new_ids = np.asarray([item[0] for item in rows]) if rows else old_ids[:0]
     if len(np.intersect1d(old_ids, new_ids)) or len(np.unique(new_ids)) != len(new_ids):
@@ -124,6 +129,39 @@ def append_completed_day(
     ), snapshot_id
 
 
+def append_feature_context(connection, source, snapshot_id: int, start, end) -> dict:
+    rows = connection.execute(
+        """
+        SELECT source_event_id, origin_time, latitude, longitude, depth_km, magnitude
+        FROM prospective.catalog_event_versions
+        WHERE snapshot_id = %s AND origin_time >= %s AND origin_time < %s
+        ORDER BY origin_time, source_event_id
+        """,
+        (snapshot_id, start, end),
+    ).fetchall()
+    names = (
+        "context_event_ids", "context_origin_time_ns", "context_latitudes",
+        "context_longitudes", "context_depths_km", "context_magnitudes",
+    )
+    old_ids = np.asarray(source[names[0]])
+    new_ids = np.asarray([row[0] for row in rows]) if rows else old_ids[:0]
+    if len(np.intersect1d(old_ids, new_ids)) or len(np.unique(new_ids)) != len(new_ids):
+        raise ValueError("feature-context event identities disagree")
+    return {
+        names[0]: np.concatenate((old_ids, new_ids)),
+        names[1]: np.concatenate((
+            np.asarray(source[names[1]], dtype=np.int64),
+            np.asarray([int(row[1].timestamp() * 1e9) for row in rows], dtype=np.int64),
+        )),
+        **{
+            name: np.concatenate((
+                np.asarray(source[name]), np.asarray([row[index] for row in rows], dtype=float)
+            ))
+            for name, index in zip(names[2:], (2, 3, 4, 5))
+        },
+    }
+
+
 def existing_daily_state(connection, protocol_id: str, region_id: str, as_of):
     return connection.execute(
         """
@@ -135,9 +173,9 @@ def existing_daily_state(connection, protocol_id: str, region_id: str, as_of):
     ).fetchone()
 
 
-def completed_california_shadow_gain(
+def completed_shadow_gain(
     connection, client, storage, protocol_id: str, region_id: str,
-    target_start, catalog,
+    target_start, catalog, region: dict,
 ) -> float:
     """Score fixed versus safe from the already-published completed-day grid."""
 
@@ -166,10 +204,26 @@ def completed_california_shadow_gain(
     selected = np.flatnonzero(event_days == number)
     if not len(selected):
         return 0.0
-    grid = load_california_runtime_context(ROOT).grid
-    cells = grid.cell_indexes(catalog.longitudes[selected], catalog.latitudes[selected])
+    if region_id == "california-relm":
+        grid = load_california_runtime_context(ROOT).grid
+        cells = grid.cell_indexes(catalog.longitudes[selected], catalog.latitudes[selected])
+    elif region_id == "new-zealand-csep":
+        geometry = region["geometry"]
+        with np.load(ROOT / geometry["path"], allow_pickle=False) as archive:
+            grid = masked_grid(
+                archive["origins"], geometry["spacing_degrees"],
+                geometry["latent_spacing_degrees"],
+            )
+        cells = grid.cells(catalog.latitudes[selected], catalog.longitudes[selected])
+    else:
+        geometry = region["geometry"]
+        grid = regional_grid(
+            tuple(geometry["longitude"]), tuple(geometry["latitude"]),
+            geometry["spacing_degrees"],
+        )
+        cells = grid.cells(catalog.latitudes[selected], catalog.longitudes[selected])
     if np.any(cells < 0):
-        raise ValueError("completed California event lies outside the forecast grid")
+        raise ValueError("completed event lies outside the forecast grid")
     return float(np.sum(np.log(fixed[cells] / safe[cells])))
 
 
@@ -226,6 +280,7 @@ def main() -> int:
                 catalog, rolling_snapshot_id = append_completed_day(
                     connection, source, protocol["protocol_id"], region_id,
                     from_as_of, to_as_of, cutoff,
+                    minimum_magnitude=region["minimum_magnitude"],
                 )
                 prefix_count = verify_source_prefix(source, catalog, from_as_of)
                 etas_path = ROOT / region["etas_model_path"]
@@ -238,9 +293,9 @@ def main() -> int:
                     if protocol.get("forecast_family") == "causal_evidence_gate":
                         arrays["gate_log_bayes_factor"] = np.asarray(
                             float(np.asarray(source["gate_log_bayes_factor"]))
-                            + completed_california_shadow_gain(
+                            + completed_shadow_gain(
                                 connection, client, storage, protocol["protocol_id"],
-                                region_id, from_as_of, catalog,
+                                region_id, from_as_of, catalog, region,
                             ),
                             dtype=np.float64,
                         )
@@ -249,6 +304,19 @@ def main() -> int:
                         source, catalog, prefix_count, region, etas_model, parent,
                         ch008, from_as_of, to_as_of,
                     )
+                    if protocol.get("forecast_family") == "causal_evidence_gate":
+                        arrays["gate_log_bayes_factor"] = np.asarray(
+                            float(np.asarray(source["gate_log_bayes_factor"]))
+                            + completed_shadow_gain(
+                                connection, client, storage, protocol["protocol_id"],
+                                region_id, from_as_of, catalog, region,
+                            ),
+                            dtype=np.float64,
+                        )
+                    if "context_event_ids" in source:
+                        arrays.update(append_feature_context(
+                            connection, source, rolling_snapshot_id, from_as_of, to_as_of
+                        ))
             snapshot_ids = list(dict.fromkeys(
                 [*parent_snapshot_ids, rolling_snapshot_id]
             ))

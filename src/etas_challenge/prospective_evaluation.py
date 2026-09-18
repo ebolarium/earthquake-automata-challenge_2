@@ -20,8 +20,7 @@ def _direction(mean_igpe: float | None) -> str:
     if mean_igpe is None:
         return "not_available_no_scored_events"
     if mean_igpe > 0:
-        # Stable machine enum retained for backward-compatible consumers.
-        return "ch008_higher_observed_event_density"
+        return "challenger_higher_observed_event_density"
     if mean_igpe < 0:
         return "etas_higher_observed_event_density"
     return "tie"
@@ -55,6 +54,8 @@ def _region_projection(region: dict) -> dict:
         "operational_status": operations,
         "provisional_result": _score_projection(region.get("provisional") or {}),
         "final_result": _score_projection(region.get("final") or {}),
+        "csep": region.get("csep"),
+        "etas_parameters": region.get("etas_parameters"),
     }
 
 
@@ -118,14 +119,14 @@ def build_evaluation(
     }
 
     return {
-        "schema": "evidence-gated-forecast-evaluation-v1",
+        "schema": "multi-region-etas-evaluation-v1",
         "generated_at": dashboard["generated_at"],
         "canonical_url": f"{base_url}/ai-evaluation",
         "machine_readable_url": f"{base_url}/api/evaluation.json",
         "project": {
-            "name": "Evidence-Gated Forecast Test",
+            "name": protocol.get("public_title", "Multi-Region ETAS Prospective Test"),
             "research_question": protocol.get("research_question"),
-            "objective": "Test whether a causal evidence gate preserves ETAS-relative information gain while limiting negative transfer from a learned spatial correction.",
+            "objective": "Test whether a frozen causal spatial correction improves ETAS across tectonically distinct regions without degrading CSEP calibration.",
             "contact": "hello@bboga.com",
             "baseline": "ETAS",
             "challenger": "Causal evidence-gated spatial forecast",
@@ -158,6 +159,7 @@ def build_evaluation(
             "descriptive_result": preferred,
             "regions": [_region_projection(item) for item in dashboard.get("regions", [])],
             "daily_scores": dashboard.get("daily_scores", []),
+            "csep": dashboard.get("csep"),
         },
         "operational_integrity": {
             "published_regions": dashboard.get("published_regions"),
@@ -193,7 +195,7 @@ def evaluation_markdown(evaluation: dict) -> str:
     status = evaluation["evidence_status"]
     result = evaluation["live_results"]["descriptive_result"]
     lines = [
-        "# Evidence-Gated Forecast Test: live evaluation brief",
+        "# Multi-Region ETAS Prospective Test: live evaluation brief",
         "",
         f"Generated at: {evaluation['generated_at']}",
         f"Protocol: {evaluation['provenance']['protocol_id']}",
@@ -255,9 +257,9 @@ def evaluation_markdown(evaluation: dict) -> str:
 
 def llms_text(public_base_url: str | None = None) -> str:
     base_url = (public_base_url or DEFAULT_PUBLIC_BASE_URL).rstrip("/")
-    return f"""# Evidence-Gated Forecast Test
+    return f"""# Multi-Region ETAS Prospective Test
 
-> A public, reproducibility-first California comparison of ETAS, a safe spatial incumbent, a fixed learned expert, and a causal evidence-gated forecast.
+> A public 365-day comparison of ETAS and a frozen causal spatial correction in California, New Zealand, Chile, and Japan C.
 
 ## Live sources
 

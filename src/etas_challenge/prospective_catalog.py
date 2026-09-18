@@ -77,7 +77,7 @@ def request_parameters(region: dict, root: Path, start: datetime, cutoff: dateti
         "maxlongitude": str(lon_max),
         "minlatitude": str(lat_min),
         "maxlatitude": str(lat_max),
-        "minmagnitude": str(region["minimum_magnitude"]),
+        "minmagnitude": str(region.get("catalog_minimum_magnitude", region["minimum_magnitude"])),
         "eventtype": "earthquake",
         "orderby": "time-asc",
     }
@@ -122,7 +122,9 @@ def parse_and_filter(region: dict, root: Path, raw_payload: bytes, start: dateti
         if (
             event.event_id not in seen
             and start <= event.time_utc < cutoff
-            and event.magnitude >= region["minimum_magnitude"]
+            and event.magnitude >= region.get(
+                "catalog_minimum_magnitude", region["minimum_magnitude"]
+            )
             and (minimum_depth is None or event.depth_km >= minimum_depth)
             and (maximum_depth is None or event.depth_km < maximum_depth)
             and event.event_type.lower() == "earthquake"

@@ -31,6 +31,7 @@ COPY scripts/activate_prospective_protocol.py ./scripts/activate_prospective_pro
 COPY scripts/send_daily_newsletter.py ./scripts/send_daily_newsletter.py
 COPY scripts/verify_adapter_freeze.py ./scripts/verify_adapter_freeze.py
 COPY scripts/verify_prospective_initial_states.py ./scripts/verify_prospective_initial_states.py
+COPY scripts/transfer_california_state_to_multiregion.py ./scripts/transfer_california_state_to_multiregion.py
 COPY scripts/verify_prospective_bootstrap.py ./scripts/verify_prospective_bootstrap.py
 COPY scripts/seed_prospective_database.py ./scripts/seed_prospective_database.py
 COPY scripts/verify_object_storage.py ./scripts/verify_object_storage.py

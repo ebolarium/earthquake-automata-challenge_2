@@ -9,7 +9,8 @@ from pathlib import Path
 
 
 EXPECTED_REGIONS = {"california-relm", "new-zealand-csep", "chile-subduction"}
-DEFAULT_PROTOCOL_PATH = "configs/prospective/evidence-gate-california-dry-run-v1.json"
+EVIDENCE_GATE_REGIONS = EXPECTED_REGIONS | {"japan-c"}
+DEFAULT_PROTOCOL_PATH = "configs/prospective/multi-region-spatial-etas-prospective-v1.json"
 
 
 def configured_protocol_path(root: Path) -> Path:
@@ -64,13 +65,15 @@ def validate_protocol(path: Path, root: Path) -> dict:
     regions = protocol.get("regions", [])
     region_ids = [region.get("region_id") for region in regions]
     expected_regions = (
-        {"california-relm"}
+        EVIDENCE_GATE_REGIONS
+        if mode == "prospective" and protocol.get("forecast_family") == "causal_evidence_gate"
+        else {"california-relm"}
         if protocol.get("forecast_family") == "causal_evidence_gate"
         else EXPECTED_REGIONS
     )
     if len(region_ids) != len(set(region_ids)) or set(region_ids) != expected_regions:
         if protocol.get("forecast_family") == "causal_evidence_gate":
-            raise ValueError("evidence-gate protocol must contain California only")
+            raise ValueError("evidence-gate protocol has the wrong frozen region set")
         raise ValueError("protocol must contain exactly the three admitted regions")
 
     if protocol.get("forecast_family") == "causal_evidence_gate":
@@ -81,9 +84,14 @@ def validate_protocol(path: Path, root: Path) -> dict:
                 protocol["challenger"]["forecast_builder_path"],
                 protocol["challenger"]["forecast_builder_sha256"],
             ),
-            (protocol["challenger"]["weights_path"], protocol["challenger"]["weights_sha256"]),
             (protocol["baseline_runtime"]["path"], protocol["baseline_runtime"]["sha256"]),
         ]
+        if "weights_path" in protocol["challenger"]:
+            locked_files.append(
+                (protocol["challenger"]["weights_path"], protocol["challenger"]["weights_sha256"])
+            )
+        for weights in protocol["challenger"].get("regional_weights", {}).values():
+            locked_files.append((weights["path"], weights["sha256"]))
     else:
         locked_files = [
             (protocol["challenger"]["model_path"], protocol["challenger"]["model_sha256"]),

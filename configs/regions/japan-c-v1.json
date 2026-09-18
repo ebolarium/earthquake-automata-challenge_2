@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "region_id": "japan-c",
+  "name": "Japan C",
+  "longitude": [141.0, 154.0],
+  "latitude": [36.0, 47.0],
+  "spacing_degrees": 0.5,
+  "minimum_magnitude": 5.0,
+  "minimum_depth_km": 0.0,
+  "maximum_depth_km_exclusive": 100.0,
+  "prospective_catalog": "USGS ANSS ComCat FDSN",
+  "catalog_continuity_note": "The prospective target catalog is frozen to ComCat and is reported separately from the historical JMA retrospective evaluation."
+}
