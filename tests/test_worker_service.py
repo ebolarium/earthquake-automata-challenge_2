@@ -87,14 +87,14 @@ class WorkerServiceTest(unittest.TestCase):
             lambda region: {"region_id": region, "layers": {}},
         )
         with urllib.request.urlopen(f"{base}/") as response:
-            self.assertIn(b"CH-008 Prospective Test", response.read())
+            self.assertIn(b"Multi-Region ETAS Test", response.read())
             self.assertEqual(response.headers["X-Frame-Options"], "DENY")
         with urllib.request.urlopen(f"{base}/api/dashboard") as response:
             self.assertEqual(json.load(response), dashboard)
             self.assertEqual(response.headers["Cache-Control"], "no-store")
         with urllib.request.urlopen(f"{base}/api/evaluation.json") as response:
             evaluation = json.load(response)
-            self.assertEqual(evaluation["schema"], "ch008-ai-evaluation-v1")
+            self.assertEqual(evaluation["schema"], "multi-region-etas-evaluation-v1")
             self.assertFalse(
                 evaluation["evidence_status"]["counts_toward_prospective_claim"]
             )
@@ -109,14 +109,14 @@ class WorkerServiceTest(unittest.TestCase):
             self.assertEqual(response.status, HTTPStatus.OK)
         with urllib.request.urlopen(f"{base}/about.html") as response:
             content = response.read()
-            self.assertIn("CH-008 Yöntem ve Bilimsel Protokol".encode(), content)
-            self.assertIn(b"hello@bboga.com", content)
+            self.assertIn("Multi-Region ETAS Test".encode(), content)
+            self.assertIn(b"Machine-readable evidence", content)
         with urllib.request.urlopen(f"{base}/en/") as response:
-            self.assertIn(b"CH-008 Prospective Test", response.read())
+            self.assertIn(b"Multi-Region ETAS Test", response.read())
         with urllib.request.urlopen(f"{base}/en/about.html") as response:
             content = response.read()
-            self.assertIn(b"CH-008 Method and Scientific Protocol", content)
-            self.assertIn(b"hello@bboga.com", content)
+            self.assertIn(b"Multi-Region ETAS Test", content)
+            self.assertIn(b"Machine-readable evidence", content)
 
     def test_forecast_map_requires_region_and_handles_unknown_region(self):
         def reader(region):
