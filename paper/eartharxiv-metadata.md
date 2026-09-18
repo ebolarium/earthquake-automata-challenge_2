@@ -1,61 +1,51 @@
-# EarthArXiv Submission Metadata
+# EarthArXiv submission metadata
 
 ## Title
 
-CH-008: Causal Renewal-Frailty Reallocation of ETAS Background Seismicity Across California, New Zealand, and Chile
+Can a Causal Spatial Correction Improve ETAS Across Tectonic Regimes? Retrospective Evidence and a Frozen Prospective Test
+
+## Article type
+
+Research article / methods and retrospective evidence with a frozen prospective protocol
 
 ## Author
 
-- Given names: Saban Baris
-- Family name: Boga
-- Affiliation: Independent Researcher
-- Location: Adana, Turkiye
-- ORCID: https://orcid.org/0009-0000-9076-946X
-- Corresponding email: hello@bboga.com
+Saban Baris Boga
 
-## Article Type
+## Affiliation
 
-Research article / methods and pre-prospective evidence
+Independent Researcher, Adana, Turkiye
 
-## Suggested Subjects
+## ORCID
 
-- Geophysics and Seismology
-- Earth Sciences
-- Statistical Models
-- Statistics and Probability
+https://orcid.org/0009-0000-9076-946X
 
-## Keywords
+## Corresponding email
 
-earthquake forecasting; ETAS; renewal process; frailty; information gain; prospective evaluation; CSEP
+hello@bboga.com
 
 ## Abstract
 
-Epidemic-Type Aftershock Sequence (ETAS) models provide a strong, interpretable baseline for short-term earthquake forecasting, but their direct background component is commonly treated as stationary after fitting. We present CH-008, a causal post-ETAS model that preserves the fitted ETAS triggered component and the total expected event rate while reallocating a fixed fraction of direct background probability in space. The reallocation is driven by two pre-event state variables: a magnitude-marked Brownian renewal score, representing elapsed loading since local reset, and a decaying frailty score, representing persistent excess or deficit of posterior background-event mass relative to ETAS expectation. Parameters were selected using California data from 2014--2018 after an unscored warm-up from 2007. Evaluation was then performed on California development validation (2019--2022), a later California retrospective period (2023--18 August 2026), and exploratory external-region transfers to New Zealand (2008--2025) and Chile (2015--2025). Mean information gain per earthquake relative to frozen ETAS was +0.00521 in California validation (N=5,204), +0.00786 in the later California period (N=3,995), +0.01856 in New Zealand (N=2,270), and +0.00972 in Chile (N=1,909); 30-day and 90-day stationary-block bootstrap lower bounds were positive in all four evaluations. The California frailty increment over renewal alone was also positive in both evaluation periods. These results are supportive but not a confirmatory prospective claim: the later California interval is not pristine with respect to the preceding model-development sequence, and the New Zealand and Chile adapters were frozen in the same commits as their result artifacts. A public, frozen, daily three-region protocol will therefore compare CH-008 with frozen ETAS for 365 days. Its primary endpoint is pooled final paired information gain per earthquake, subject to predeclared event-count, uncertainty, operational-eligibility, and no-backfill rules.
+Epidemic-type aftershock sequence (ETAS) models are strong short-term earthquake-forecasting baselines, but their prescribed spatial kernel may leave repeatable structure unexplained. We ask whether a causal neural spatial correction can improve frozen ETAS across tectonically distinct regions and whether a prior-day evidence gate can limit negative transfer. A leave-one-region-out, translation-invariant fast-minus-slow event-history network reallocates daily ETAS rate only inside its upper 1% spatial support, preserves total expected count, and is activated only after a Bayes-factor hurdle of 20. In retrospective daily-grid replays containing 8,152 earthquakes, the evidence-gated challenger achieved positive IGPE against ETAS in California, New Zealand, Chile, and Japan C; descriptive pooled IGPE was 0.01525. It did not establish uniform superiority over a regional safe correction, and the external-region aggregate missed that development criterion by approximately 0.0000019 IGPE. We therefore froze a 365-day, four-region prospective experiment with a minimum of 500 pooled events, paired IGPE as the primary endpoint, and CSEP N-, L-, and R-tests as secondary diagnostics. The retrospective result supports prospective testing but does not constitute independent validation.
 
-## Conflict of Interest
+## Keywords
 
-The author declares no competing interests.
-
-## Funding
-
-This independent research received no external funding.
-
-## Data Availability
-
-Source code, frozen configurations, model files, region definitions, result manifests, tests, and protocol documentation are available at https://github.com/ebolarium/earthquake-automata-challenge. Public operational status and machine-readable prospective-test summaries are available at https://etas.bboga.com/. Input earthquake catalogs are obtained from the USGS ANSS ComCat and GeoNet FDSN Event Web Services. Large catalog snapshots and binary daily forecast artifacts are not currently deposited with EarthArXiv; their provenance and SHA-256 identities are recorded by the operational system.
+earthquake forecasting; ETAS; neural point process; information gain per earthquake; CSEP; prospective evaluation; causal prediction; negative transfer
 
 ## License
 
 CC BY 4.0
 
-## Peer-Review Status
+## Related resources
 
-This manuscript is a non-peer-reviewed preprint. It has not been submitted to a peer-reviewed journal as of 16 September 2026.
+- Code and frozen protocol: https://github.com/ebolarium/earthquake-automata-challenge_2
+- Public prospective scorecard: https://etas2.bboga.com
 
-## Before Submission
+## Submission checklist
 
-- Add `hello@bboga.com` to the ORCID record used for EarthArXiv and ensure it matches the submitting account.
-- Add `Independent Researcher` as a current or recent affiliation/activity in ORCID.
-- Review the PDF one final time after the dry-run final scores settle if those numbers are to remain in the manuscript.
-- Preferably archive the exact code release with Zenodo and replace the Git commit-only citation with the resulting DOI.
-- Upload only `output/pdf/ch008-preprospective-manuscript-v0.1.pdf`; EarthArXiv requires one PDF.
+- English-language scientific manuscript with title, abstract, author, affiliation, and correspondence.
+- Full ORCID URL appears on the coversheet.
+- Coversheet and every-page footer identify the document as a non-peer-reviewed preprint submitted to EarthArXiv.
+- All figures, tables, declarations, and references are contained in one PDF.
+- Retrospective evidence, failed admission criteria, and unobserved prospective results are explicitly distinguished.
+- Author should confirm that the ORCID profile is current and that the submission-account email matches the correspondence email before upload.

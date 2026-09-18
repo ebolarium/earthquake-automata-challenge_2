@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the EarthArXiv-ready CH-008 manuscript PDF from Markdown."""
+"""Build the EarthArXiv-ready causal spatial correction manuscript."""
 
 from __future__ import annotations
 
@@ -28,6 +28,8 @@ from reportlab.platypus import (
     PageTemplate,
     Paragraph,
     Spacer,
+    Table,
+    TableStyle,
 )
 
 
@@ -36,7 +38,7 @@ PAPER = ROOT / "paper"
 FIGURES = PAPER / "figures"
 OUTPUT = ROOT / "output" / "pdf"
 MANUSCRIPT = PAPER / "manuscript.md"
-PDF = OUTPUT / "ch008-preprospective-manuscript-v0.1.pdf"
+PDF = OUTPUT / "causal-spatial-correction-etas-preprint-v1.0.pdf"
 
 INK = "#15212b"
 MUTED = "#586975"
@@ -154,6 +156,113 @@ def make_timeline_figure(path: Path) -> None:
     plt.close(fig)
 
 
+def make_causal_method_figure(path: Path) -> None:
+    fig, ax = plt.subplots(figsize=(11.2, 4.7))
+    ax.set_xlim(0, 11.2)
+    ax.set_ylim(0, 4.7)
+    ax.axis("off")
+    boxes = [
+        (0.15, 2.75, 2.05, 1.05, "Frozen ETAS", "daily count + support", TEAL),
+        (2.65, 3.10, 2.05, 0.92, "Safe expert", "causal renewal", GREEN),
+        (2.65, 1.72, 2.05, 0.92, "Event history", "256 causal events", GOLD),
+        (5.20, 1.72, 2.15, 0.92, "Fast - slow MLP", "3 LORO members", "#526d82"),
+        (5.20, 3.10, 2.15, 0.92, "Top 1% support", "50% restricted mix", RED),
+        (7.85, 2.42, 1.65, 1.05, "BF20 gate", "prior days only", "#6b4f8a"),
+        (9.90, 2.42, 1.15, 1.05, "Daily\nforecast", "same count", INK),
+    ]
+    for x, y, w, h, title, subtitle, color in boxes:
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.03,rounding_size=0.07",
+                                    linewidth=1.5, edgecolor=color, facecolor="white"))
+        ax.text(x + w / 2, y + h * 0.63, title, ha="center", va="center",
+                fontsize=10.2, weight="bold", color=INK)
+        ax.text(x + w / 2, y + h * 0.28, subtitle, ha="center", va="center",
+                fontsize=8.3, color=MUTED)
+    arrows = [
+        ((2.20, 3.32), (2.65, 3.55)), ((2.20, 3.05), (5.20, 3.55)),
+        ((4.70, 2.18), (5.20, 2.18)), ((7.35, 3.55), (7.85, 3.05)),
+        ((7.35, 2.18), (7.85, 2.72)), ((9.50, 2.95), (9.90, 2.95)),
+    ]
+    for start, end in arrows:
+        ax.add_patch(FancyArrowPatch(start, end, arrowstyle="-|>", mutation_scale=13,
+                                     linewidth=1.25, color="#84949e"))
+    ax.text(5.60, 0.78, "Only spatial mass moves; total ETAS rate is invariant",
+            ha="center", va="center", fontsize=10.3, color=INK, weight="bold")
+    ax.text(5.60, 0.38, "Target-region outcomes are excluded from neural training, but retrospective replays remain development evidence",
+            ha="center", va="center", fontsize=8.5, color=MUTED)
+    fig.savefig(path, dpi=230, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
+def make_retrospective_figure(path: Path) -> None:
+    labels = ["California", "New Zealand", "Chile", "Japan C"]
+    means = [0.0094367, 0.0304595, 0.0107279, 0.0015031]
+    lo30 = [0.0058836, 0.0194348, 0.0076018, 0.0010245]
+    hi30 = [0.0131998, 0.0392234, 0.0145325, 0.0020978]
+    lo90 = [0.0058590, 0.0196489, 0.0069351, 0.0010012]
+    hi90 = [0.0130591, 0.0400194, 0.0158418, 0.0021665]
+    events = [3619, 2270, 1909, 354]
+    x = list(range(4))
+    fig, ax = plt.subplots(figsize=(10.8, 5.0))
+    ax.axhline(0, color="#6f7d85", linewidth=1)
+    for i in x:
+        ax.vlines(i, lo90[i], hi90[i], color="#a8b7bf", linewidth=3, zorder=1)
+        ax.vlines(i, lo30[i], hi30[i], color=TEAL, linewidth=8, alpha=0.72, zorder=2)
+        ax.scatter(i, means[i], s=78, color=INK, edgecolor="white", linewidth=1.2, zorder=3)
+        ax.text(i, max(hi30[i], hi90[i]) + 0.0014, f"N={events[i]:,}", ha="center",
+                va="bottom", fontsize=8.8, color=MUTED)
+    ax.set_xticks(x, labels)
+    ax.set_ylabel("IGPE against frozen ETAS (nats)")
+    ax.set_ylim(-0.0015, 0.044)
+    ax.grid(axis="y", color="#dbe3e7", linewidth=0.8)
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    ax.set_title("Evidence-gated retrospective daily-grid replay", loc="left",
+                 fontsize=13, weight="bold", color=INK, pad=13)
+    ax.text(0.0, 1.01, "Thick: 30-day blocks   Thin: 90-day blocks   All target outcomes were opened",
+            transform=ax.transAxes, fontsize=8.6, color=MUTED)
+    fig.savefig(path, dpi=230, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
+def make_prospective_figure(path: Path) -> None:
+    fig, ax = plt.subplots(figsize=(11.0, 4.0))
+    ax.set_xlim(0, 11)
+    ax.set_ylim(0, 4)
+    ax.axis("off")
+    regions = [(0.25, "California", TEAL), (2.05, "New Zealand", GREEN),
+               (3.85, "Chile", GOLD), (5.65, "Japan C", RED)]
+    for x, label, color in regions:
+        ax.add_patch(FancyBboxPatch((x, 2.55), 1.45, 0.72,
+                                    boxstyle="round,pad=0.02,rounding_size=0.06",
+                                    facecolor="white", edgecolor=color, linewidth=1.5))
+        ax.text(x + 0.725, 2.91, label, ha="center", va="center",
+                fontsize=9, weight="bold", color=INK)
+        ax.add_patch(FancyArrowPatch((x + 0.725, 2.55), (4.15, 2.03), arrowstyle="-|>",
+                                     mutation_scale=10, linewidth=1.0, color="#8797a0"))
+    ax.add_patch(FancyBboxPatch((3.35, 1.28), 2.15, 0.76,
+                                boxstyle="round,pad=0.02,rounding_size=0.06",
+                                facecolor=INK, edgecolor="none"))
+    ax.text(4.425, 1.66, "Atomic daily issue", ha="center", va="center",
+            fontsize=10, color="white", weight="bold")
+    stages = [(6.10, "Provisional\nscore", "daily"), (7.70, "Final score", "+7 days"),
+              (9.15, "Primary test", "day 365; N>=500")]
+    prior = (5.50, 1.66)
+    for x, title, sub in stages:
+        ax.add_patch(FancyBboxPatch((x, 1.25), 1.25, 0.82,
+                                    boxstyle="round,pad=0.02,rounding_size=0.06",
+                                    facecolor="white", edgecolor="#526d82", linewidth=1.4))
+        ax.text(x + 0.625, 1.73, title, ha="center", va="center", fontsize=8.8,
+                weight="bold", color=INK)
+        ax.text(x + 0.625, 1.39, sub, ha="center", va="center", fontsize=7.8, color=MUTED)
+        ax.add_patch(FancyArrowPatch(prior, (x, 1.66), arrowstyle="-|>", mutation_scale=11,
+                                     linewidth=1.1, color="#8797a0"))
+        prior = (x + 1.25, 1.66)
+    ax.text(5.5, 0.45, "365 fixed target days  |  no backfill  |  no refit  |  no region exclusion",
+            ha="center", va="center", fontsize=10, color=INK, weight="bold")
+    fig.savefig(path, dpi=230, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
 def inline_markup(text: str) -> str:
     escaped = html.escape(text, quote=False)
     escaped = re.sub(r"`([^`]+)`", r'<font name="Courier">\1</font>', escaped)
@@ -169,6 +278,7 @@ def parse_markdown(text: str, styles: dict[str, ParagraphStyle]) -> list:
     paragraph: list[str] = []
     bullets: list[str] = []
     numbered: list[str] = []
+    table_rows: list[list[str]] = []
     seen_title = False
     front_matter = True
 
@@ -191,8 +301,40 @@ def parse_markdown(text: str, styles: dict[str, ParagraphStyle]) -> list:
             story.append(Spacer(1, 2 * mm))
             numbered = []
 
+    def flush_table() -> None:
+        nonlocal table_rows
+        if not table_rows:
+            return
+        columns = len(table_rows[0])
+        data = []
+        for row_index, row in enumerate(table_rows):
+            style = styles["TableHead"] if row_index == 0 else styles["TableCell"]
+            data.append([Paragraph(inline_markup(cell), style) for cell in row])
+        table = Table(data, colWidths=[166 * mm / columns] * columns,
+                      repeatRows=1, hAlign="LEFT")
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e9f1f3")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor(INK)),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.HexColor(TEAL)),
+            ("LINEBELOW", (0, 1), (-1, -1), 0.25, colors.HexColor("#d8e1e5")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.extend([Spacer(1, 1.5 * mm), table, Spacer(1, 3 * mm)])
+        table_rows = []
+
     for line in lines:
         stripped = line.strip()
+        if stripped.startswith("|") and stripped.endswith("|"):
+            flush_paragraph(); flush_lists()
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if not all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells):
+                table_rows.append(cells)
+            continue
+        flush_table()
         image_match = re.match(r"!\[(.+)]\((.+)\)", stripped)
         if not stripped:
             flush_paragraph()
@@ -202,7 +344,7 @@ def parse_markdown(text: str, styles: dict[str, ParagraphStyle]) -> list:
             flush_paragraph(); flush_lists()
             caption, rel = image_match.groups()
             img_path = PAPER / rel
-            image = Image(str(img_path), width=166 * mm, height=70 * mm, kind="proportional")
+            image = Image(str(img_path), width=166 * mm, height=58 * mm, kind="proportional")
             cap = Paragraph(inline_markup(caption), styles["Caption"])
             story.extend([Spacer(1, 2 * mm), KeepTogether([image, Spacer(1, 1.5 * mm), cap]), Spacer(1, 3 * mm)])
             continue
@@ -243,7 +385,7 @@ def parse_markdown(text: str, styles: dict[str, ParagraphStyle]) -> list:
             story.append(Paragraph(inline_markup(stripped.rstrip("  ")), styles["Meta"]))
             continue
         paragraph.append(stripped)
-    flush_paragraph(); flush_lists()
+    flush_paragraph(); flush_lists(); flush_table()
     return story
 
 
@@ -256,9 +398,9 @@ class ManuscriptDocTemplate(BaseDocTemplate):
             rightMargin=22 * mm,
             topMargin=19 * mm,
             bottomMargin=19 * mm,
-            title="CH-008: Causal Renewal-Frailty Reallocation of ETAS Background Seismicity",
+            title="Can a Causal Spatial Correction Improve ETAS Across Tectonic Regimes?",
             author="Saban Baris Boga",
-            subject="Earthquake forecasting methods and pre-prospective evidence",
+            subject="Retrospective evidence and a frozen prospective earthquake-forecast test",
         )
         frame = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="body")
         self.addPageTemplates(PageTemplate(id="main", frames=[frame], onPage=self._decorate))
@@ -271,7 +413,7 @@ class ManuscriptDocTemplate(BaseDocTemplate):
         canvas.line(22 * mm, 14 * mm, 188 * mm, 14 * mm)
         canvas.setFont("Helvetica", 7.5)
         canvas.setFillColor(colors.HexColor(MUTED))
-        canvas.drawString(22 * mm, 9 * mm, "CH-008 pre-prospective manuscript v0.1")
+        canvas.drawString(22 * mm, 9 * mm, "Non-peer-reviewed preprint submitted to EarthArXiv · v1.0")
         canvas.drawRightString(188 * mm, 9 * mm, f"{doc.page}")
         canvas.restoreState()
 
@@ -311,6 +453,10 @@ def styles() -> dict[str, ParagraphStyle]:
         "Caption": ParagraphStyle("Caption", parent=base["BodyText"], fontName="Helvetica-Oblique",
                                   fontSize=8.2, leading=10.5, textColor=colors.HexColor(MUTED),
                                   alignment=TA_LEFT, keepWithNext=False),
+        "TableHead": ParagraphStyle("TableHead", parent=base["BodyText"], fontName="Helvetica-Bold",
+                                    fontSize=7.4, leading=9.2, textColor=colors.HexColor(INK)),
+        "TableCell": ParagraphStyle("TableCell", parent=base["BodyText"], fontName="Helvetica",
+                                    fontSize=7.1, leading=9.0, textColor=colors.HexColor(INK)),
     }
 
 
@@ -319,14 +465,14 @@ def cover_sheet(s: dict[str, ParagraphStyle]) -> list:
         Spacer(1, 18 * mm),
         Paragraph("EARTHARXIV SUBMISSION COVERSHEET", s["CoverKicker"]),
         Paragraph(
-            "CH-008: Causal Renewal-Frailty Reallocation of ETAS Background Seismicity "
-            "Across California, New Zealand, and Chile",
+            "Can a Causal Spatial Correction Improve ETAS Across Tectonic Regimes? "
+            "Retrospective Evidence and a Frozen Prospective Test",
             s["CoverTitle"],
         ),
         Paragraph(
             "This manuscript is a <b>non-peer-reviewed preprint submitted to EarthArXiv</b>. "
-            "It may be revised. It has not been submitted to a peer-reviewed journal as of "
-            "16 September 2026.",
+            "It may be revised. The retrospective results are development evidence; the frozen "
+            "prospective experiment had not produced a result as of 18 September 2026.",
             s["CoverStatement"],
         ),
         Paragraph("<b>Author</b>: Saban Baris Boga (sole author)", s["Meta"]),
@@ -338,19 +484,19 @@ def cover_sheet(s: dict[str, ParagraphStyle]) -> list:
         ),
         Paragraph("<b>Correspondence</b>: hello@bboga.com", s["Meta"]),
         Spacer(1, 6 * mm),
-        Paragraph("<b>Version</b>: 0.1, 16 September 2026", s["Meta"]),
-        Paragraph("<b>Submission type</b>: Research article / methods and pre-prospective evidence", s["Meta"]),
+        Paragraph("<b>Version</b>: 1.0, 18 September 2026", s["Meta"]),
+        Paragraph("<b>Submission type</b>: Research article / retrospective evidence and prospective protocol", s["Meta"]),
         Paragraph("<b>License</b>: Creative Commons Attribution 4.0 International (CC BY 4.0)", s["Meta"]),
         Paragraph(
-            "<b>Keywords</b>: earthquake forecasting; ETAS; renewal process; frailty; "
-            "information gain; prospective evaluation; CSEP",
+            "<b>Keywords</b>: earthquake forecasting; ETAS; neural point process; "
+            "information gain; prospective evaluation; CSEP; negative transfer",
             s["Meta"],
         ),
         Spacer(1, 8 * mm),
         Paragraph(
-            "The formal 365-day prospective evaluation described in this manuscript is scheduled "
-            "to begin with the target day of 24 September 2026. Pre-activation evidence is labeled "
-            "according to its actual retrospective or operational status.",
+            "The formal 365-day prospective evaluation activates only when one atomic issue "
+            "publishes all four regional forecasts for the same future UTC day. Pre-activation "
+            "evidence is labeled according to its actual retrospective development status.",
             s["Body"],
         ),
         PageBreak(),
@@ -360,9 +506,9 @@ def cover_sheet(s: dict[str, ParagraphStyle]) -> list:
 def main() -> int:
     FIGURES.mkdir(parents=True, exist_ok=True)
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    make_method_figure(FIGURES / "ch008-method.png")
-    make_evidence_figure(FIGURES / "preprospective-evidence.png")
-    make_timeline_figure(FIGURES / "evidence-timeline.png")
+    make_causal_method_figure(FIGURES / "causal-spatial-method.png")
+    make_retrospective_figure(FIGURES / "retrospective-igpe.png")
+    make_prospective_figure(FIGURES / "prospective-protocol.png")
     style_map = styles()
     story = cover_sheet(style_map) + parse_markdown(MANUSCRIPT.read_text(encoding="utf-8"), style_map)
     ManuscriptDocTemplate(str(PDF)).build(story)

@@ -1,4 +1,4 @@
-# CH-008 Manuscript
+# EarthArXiv Manuscript
 
 This directory contains the English EarthArXiv manuscript source, generated
 figures, submission metadata, and the deterministic PDF build script.
@@ -13,7 +13,7 @@ python paper/build_manuscript.py
 The single-file submission artifact is written to:
 
 ```text
-output/pdf/ch008-preprospective-manuscript-v0.1.pdf
+output/pdf/causal-spatial-correction-etas-preprint-v1.0.pdf
 ```
 
 The PDF includes the EarthArXiv coversheet, manuscript, figures, declarations,

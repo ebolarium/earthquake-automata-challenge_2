@@ -1,239 +1,230 @@
-# CH-008: Causal Renewal-Frailty Reallocation of ETAS Background Seismicity Across California, New Zealand, and Chile
+# Can a Causal Spatial Correction Improve ETAS Across Tectonic Regimes? Retrospective Evidence and a Frozen Prospective Test
 
 **Saban Baris Boga**
+
 Independent Researcher, Adana, Turkiye
 ORCID: https://orcid.org/0009-0000-9076-946X
 Correspondence: hello@bboga.com
 
-**Manuscript status:** Version 0.1, 16 September 2026. Pre-prospective methods and evidence paper. The formal 365-day prospective evaluation described here is scheduled to activate on 23 September 2026, with its first target day beginning at 00:00 UTC on 24 September 2026.
+**Manuscript status:** Version 1.0, 18 September 2026. Research article and prospective protocol. The retrospective analyses reported here used opened data; the confirmatory 365-day experiment was frozen before its first eligible four-region forecast and had not produced a prospective result at the time of writing.
 
 ## Abstract
 
-Epidemic-Type Aftershock Sequence (ETAS) models provide a strong, interpretable baseline for short-term earthquake forecasting, but their direct background component is commonly treated as stationary after fitting. We present CH-008, a causal post-ETAS model that preserves the fitted ETAS triggered component and the total expected event rate while reallocating a fixed fraction of direct background probability in space. The reallocation is driven by two pre-event state variables: a magnitude-marked Brownian renewal score, representing elapsed loading since local reset, and a decaying frailty score, representing persistent excess or deficit of posterior background-event mass relative to ETAS expectation. Parameters were selected using California data from 2014--2018 after an unscored warm-up from 2007. Evaluation was then performed on California development validation (2019--2022), a later California retrospective period (2023--18 August 2026), and exploratory external-region transfers to New Zealand (2008--2025) and Chile (2015--2025). Mean information gain per earthquake relative to frozen ETAS was +0.00521 in California validation (N=5,204), +0.00786 in the later California period (N=3,995), +0.01856 in New Zealand (N=2,270), and +0.00972 in Chile (N=1,909); 30-day and 90-day stationary-block bootstrap lower bounds were positive in all four evaluations. The California frailty increment over renewal alone was also positive in both evaluation periods. These results are supportive but not a confirmatory prospective claim: the later California interval is not pristine with respect to the preceding model-development sequence, and the New Zealand and Chile adapters were frozen in the same commits as their result artifacts. A public, frozen, daily three-region protocol will therefore compare CH-008 with frozen ETAS for 365 days. Its primary endpoint is pooled final paired information gain per earthquake, subject to predeclared event-count, uncertainty, operational-eligibility, and no-backfill rules.
+Epidemic-type aftershock sequence (ETAS) models are strong short-term earthquake-forecasting baselines, but their prescribed spatial kernel may leave repeatable, catalog-dependent structure unexplained. We ask two linked questions: can a causal neural correction improve the spatial log score of frozen ETAS across tectonically distinct regions, and can an evidence gate limit negative transfer when that correction is deployed? We constructed a translation-invariant fast-minus-slow event-history network. For each target region, a three-member ensemble was trained only on the other regions. The network reallocates, but does not change, the daily ETAS expected count. Its correction is restricted to cells in the upper 1% of the ETAS rate field and is mixed at 0.5 with a causal regional safe forecast. A Bayes-factor hurdle of 20 activates the neural expert using only scores from completed prior days. In retrospective daily-grid replays comprising 8,152 earthquakes, the gated forecast achieved positive information gain per earthquake (IGPE) against ETAS in California (0.00944; 90-day stationary-block 95% interval lower bound 0.00586), New Zealand (0.03046; 0.01965), Chile (0.01073; 0.00694), and Japan C (0.00150; 0.00100). The pooled descriptive IGPE was 0.01525. However, against the regional safe forecast, the gate was exactly neutral in New Zealand and Japan C, positive in California, and slightly negative in Chile; the external-region event-weighted difference was -0.0000019 IGPE. Thus, the retrospective answer is qualified: the frozen hybrid improved ETAS in all four replays, but independent transport and superiority over a strong safe correction are not established. We therefore froze a 365-day, four-region prospective experiment with daily forecasts, a minimum of 500 pooled target earthquakes, paired IGPE as the primary endpoint, and CSEP N-, L-, and R-tests as secondary diagnostics. The protocol forbids backfill, post-activation refitting, and post-hoc region exclusion.
 
-**Keywords:** earthquake forecasting; ETAS; renewal process; frailty; information gain; prospective evaluation; CSEP
+**Keywords:** earthquake forecasting; ETAS; neural point process; information gain per earthquake; CSEP; prospective evaluation; causal prediction; negative transfer
 
 ## 1. Introduction
 
-Earthquake forecasts must separate two related but distinct sources of seismicity. Recent earthquakes induce strongly clustered aftershock activity, while tectonic loading and other persistent processes produce a background component that is less directly attributable to recent events. ETAS models formalize this decomposition as a conditional point process and remain a demanding baseline for short-term forecasting [1,2]. Their strength is precisely why incremental improvements should be judged by paired likelihood against a frozen ETAS implementation rather than by visual agreement, alarm counts, or an easier stationary reference.
+Earthquake forecasting is a probabilistic point-process problem: a useful model must assign rate to future events before they occur and must be judged with data unavailable at model construction. ETAS represents seismicity as a background process plus self-exciting offspring from previous earthquakes [1,2]. It remains a demanding benchmark because its temporal productivity and spatial decay encode empirically persistent features of clustered seismicity.
 
-CH-008 tests a narrow hypothesis: some forecastable structure remains inside the ETAS direct-background allocation after the triggered contribution has been accounted for. The model does not replace ETAS, add earthquake counts, or suppress its aftershock kernel. Instead, it conservatively moves a fixed fraction of ETAS background mass toward cells whose causal histories indicate (i) high renewal age after magnitude-dependent reset and (ii) persistent excess posterior background occurrence relative to ETAS expectation. The first signal represents local loading age. The second is a frailty-like residual memory that asks whether a location repeatedly produces more independently attributed seismicity than its baseline exposure predicts.
+Neural point-process models can learn dependencies that are not captured by a fixed parametric kernel. Recent studies have shown that neural encoders can match or exceed ETAS in selected catalogs [3--5]. Flexibility, however, creates three hazards. First, absolute coordinates can let a network memorize a training geography. Second, standard random splits leak later seismic regimes into training. Third, an apparently successful correction can degrade a well-calibrated baseline when transported to a different tectonic regime. These hazards are especially important when the intended claim spans transform, subduction, and complex island-arc settings.
 
-This paper has three aims. First, it specifies CH-008 sufficiently to distinguish the scientific hypothesis from its software implementation. Second, it reports the complete pre-prospective evidence hierarchy, including limitations that prevent retrospective results from being described as confirmatory. Third, it records the frozen design of a 365-day, three-region prospective test before its first scored target window.
+We address those hazards by narrowing the learning problem. The neural component does not predict the total number of earthquakes. Instead, it learns a relative spatial density ratio from causal event history; ETAS continues to supply the daily expected count. The network uses coordinates expressed relative to each candidate location and contrasts recent activity with a compressed slower history. Every target-region model is leave-one-region-out, so the target geography contributes no training example. The learned redistribution is further confined to high-rate ETAS support and is admitted only after completed-day evidence clears a fixed hurdle.
 
-CH-008 forecasts earthquake occurrence rates, not deterministic event times or exact future epicentres. A positive average information gain means that observed events received, on average, greater probability density under CH-008 than under ETAS while the total expected rate was held equal. It does not imply deterministic prediction, hazard certification, or operational public warning capability.
+The present study asks: **Does this constrained, evidence-gated spatial correction improve frozen ETAS across tectonically distinct regions without sacrificing calibration?** We answer the retrospective portion using four daily-grid replays, report the failed as well as passed gates, and then specify the independent prospective test that can adjudicate generalization. This distinction matters: all retrospective target outcomes are now known and are development evidence, irrespective of whether individual model fits excluded a target region.
 
-## 2. ETAS baseline and conserved-rate comparison
+Our contributions are:
 
-### 2.1 Conditional intensity
+- a translation-invariant fast-minus-slow neural residual that begins at the exact ETAS control and conserves total daily rate;
+- leave-one-region-out training and causal permutation interventions that test whether event history, rather than geography alone, carries the signal;
+- a support restriction and anytime evidence hurdle designed to reduce negative transfer;
+- a complete four-region retrospective accounting, including the near-zero external shortfall against the safe incumbent; and
+- a frozen, public, 365-day protocol that reports IGPE and CSEP N-, L-, and R-tests for every region and for the pooled experiment.
 
-Let the fitted ETAS conditional intensity at time `t` and location `x` be
+![Figure 1. Forecast construction. ETAS fixes the daily expected count. A regional safe redistribution and a leave-one-region-out neural spatial expert are combined only inside the upper 1% of the ETAS rate field. A prior-day evidence hurdle determines whether the neural expert receives positive weight.](figures/causal-spatial-method.png)
 
-`lambda_E(t,x) = mu(x) + sum_{i:t_i<t} g(t-t_i, x-x_i | m_i)`,
+## 2. Models
 
-where `mu(x)` is the direct background intensity and `g` is the marked triggering kernel. The implementation used here follows the published spatial-temporal ETAS parameterization reproduced from the EarthquakeNPP reference workflow, including finite-window temporal normalization, magnitude-dependent spatial kernels, boundary treatment, and the point-process compensator [1,2]. Source versions and numerical contracts are pinned in the public repository.
+### 2.1 Frozen ETAS baseline
 
-For each daily forecast, ETAS background mass in spatial cell `j` is `b_t(j)`. CH-008 constructs a reallocated background `b'_t(j)` such that
+For location x and time t, the ETAS conditional intensity is written schematically as
 
-`sum_j b'_t(j) = sum_j b_t(j)`.
+`lambda_ETAS(t,x) = mu(x) + sum_{t_i<t} K(m_i) g(t-t_i) f(x-x_i | m_i)`.
 
-The challenger intensity is
+The sum includes only earthquakes observed strictly before forecast issue time. The productivity term K increases with parent magnitude; g is a tapered Omori-type temporal kernel; and f is a magnitude-scaled spatial power-law kernel. Each regional ETAS calibration is frozen before prospective activation. Daily integration over the regional grid gives cell rates `lambda_E,j` and total expected count `Lambda_E = sum_j lambda_E,j`.
 
-`lambda_C(t,j) = lambda_E(t,j) + b'_t(j) - b_t(j)`.
+The experiment evaluates spatial allocation conditional on the daily count supplied by ETAS. Every challenger stage is constrained so that `sum_j lambda_C,j = Lambda_E`. Consequently, the event-wise log-rate ratio reduces to a spatial probability ratio, while the CSEP count diagnostics remain identical unless an implementation error violates the invariant.
 
-Thus the ETAS triggered component and domain-integrated expected count are identical in the paired comparison. CH-008 can gain likelihood only by placing the conserved background mass more effectively in space.
+### 2.2 Regional safe forecast
 
-![Figure 1. CH-008 leaves the ETAS triggered component and total expected rate unchanged, while renewal and frailty states causally tilt a bounded fraction of direct background mass.](figures/ch008-method.png)
+The safe expert is a causal, non-neural redistribution of ETAS background intensity. California uses a supported-neighbor renewal residual based on background-attributed activity in fixed 7- and 30-day windows. Its three frozen parameters are an acceleration support power of 0.7148116, additive acceleration mix of 0.0797456, and residual scale of 0.7423419. New Zealand, Chile, and Japan C use the same exposure-normalized renewal construction with regional exposure scales fixed before the prospective run. The triggered ETAS component passes through unchanged, and the adjusted background is renormalized to preserve the ETAS daily count.
 
-### 2.2 Posterior background attribution
+This expert is called “safe” only in a relative engineering sense: it is the fallback selected before the prospective experiment, not a claim that it is the true data-generating process. The evidence hurdle therefore provides a deployment rule, not a formal universal error guarantee.
 
-For an observed event `i`, the causal ETAS probability of direct-background attribution is
+### 2.3 Translation-invariant fast-minus-slow network
 
-`p_bg(i) = mu(x_i) / lambda_E(t_i,x_i)`.
+The neural expert receives the 256 most recent catalog events available before issue time. Every event has five normalized features: log inter-event gap, along-strike coordinate, cross-strike coordinate, normalized depth, and magnitude above the regional completeness threshold. The final 32 events form the fast branch. The preceding 224 events are grouped chronologically in blocks of eight, yielding 28 slow tokens with mean features and maximum magnitude.
 
-CH-008 uses this soft posterior mass rather than binary declustering. This avoids pretending that latent parentage is known and allows every state update to be computed from information available strictly before the next forecast window.
+For a candidate cell, the network forms event-candidate pairs containing two relative coordinates, log radial distance, normalized gap, normalized depth, mean magnitude, and maximum magnitude. A two-layer multilayer perceptron maps seven pair features through 32 and 48 hidden units with GELU activations. Pair embeddings are averaged separately over the fast and slow histories; their difference is passed through layer normalization, a 48-unit hidden layer, dropout 0.1, and a scalar output. Candidate logits are centered so that only relative allocation is represented. The output layer is initialized to zero, making epoch zero the exact ETAS control.
 
-## 3. CH-008 state model
+Training uses contrastive spatial windows. A positive observed target location competes against ETAS-drawn counterfactual locations. Cross-entropy is supplemented by penalties that push the correction toward neutrality when event contexts are mismatched across examples or shuffled in time. Chronological validation selects checkpoints. Learning rate is 0.0003, weight decay 0.001, batch size 64, maximum 35 epochs, early-stopping patience six, and gradient norm clip 1.0.
 
-### 3.1 Magnitude-marked renewal age
+For each held-out target region, training uses only the other regions. Three fixed seeds (14002, 14003, and 14004) are averaged in logit space. This is equivalent to a geometric mean of learned density ratios before candidate-set normalization. No seed is selected by target outcome.
 
-Each event produces a bounded reset mark
+### 2.4 Support-restricted transport
 
-`q(m) = min(1, 10^[gamma_m (m - M_full)])`.
+Unrestricted neural renormalization moved rate into cells where ETAS assigned little support and produced a negative California ablation. We therefore define active support A as grid cells at or above the 0.99 quantile of the daily ETAS rates. The neural allocation is renormalized to the safe expert's mass within A; cells outside A remain exactly equal to the safe expert. The fixed expert is
 
-With `M_full = 4.088951` and `gamma_m = 0.358966`, small events partially reset local age, while events at or above the saturation magnitude reset fully. If `E_t(j)` is normalized exposure accrued during day `t`, and `O_t(j)` is the neighborhood-mixed posterior reset mass, renewal age evolves as
+`lambda_F = lambda_S + 0.5 (lambda_N,A - lambda_S,A)` within A,
 
-`A_{t+1}(j) = [A_t(j) + E_t(j)] exp[-O_t(j)]`.
+and `lambda_F = lambda_S` outside A. Here `lambda_N,A` is the neural allocation rescaled to the safe mass on A. The mixture fraction 0.5 and quantile 0.99 were selected on opened California development outcomes and are not independent evidence.
 
-Age is converted to a hazard multiplier using a Brownian Passage Time renewal density with aperiodicity `alpha = 0.989282` [3]. Only positive log-hazard is retained:
+### 2.5 Prior-day evidence hurdle
 
-`R_t(j) = max(log h_BPT(A_context,t(j)), 0)`.
+Let `S_d` be the cumulative event log-rate ratio of the fixed expert to the safe expert through completed issue day d. No within-day outcome changes a forecast already issued. For the next day,
 
-The neighborhood context mixes local and adjacent fault-network or latent-grid states with weight 0.676500. California uses a UCERF3-derived fault-network representation [4]. New Zealand and Chile use causal cell-neighborhood operators on their frozen latent grids.
+`w_{d+1} = max(0, tanh((S_d - log 20)/2))`,
 
-### 3.2 Residual frailty memory
+`lambda_C,d+1 = lambda_S,d+1 + w_{d+1}(lambda_F,d+1 - lambda_S,d+1)`.
 
-Frailty compares decaying observed posterior background mass with decaying expected background exposure. With half-life `H = 430.582` days,
+The initial state is `S_0 = 0`, so the first forecast is exactly safe. The hurdle corresponds to a fixed Bayes-factor threshold of 20. Historical retrospective evidence is not carried into prospective activation. A region that never qualifies remains exactly at the safe expert; a qualified region can deactivate if cumulative evidence falls back below the hurdle.
 
-`delta = exp[-log(2)/H]`,
+## 3. Data and experimental design
 
-`X_{t+1}(j) = delta X_t(j) + expected_bg_t(j)`,
+### 3.1 Regions and catalogs
 
-`Y_{t+1}(j) = delta Y_t(j) + observed_posterior_bg_t(j)`.
+The regions span distinct tectonic settings and catalog regimes. California RELM is dominated by transform faulting with a dense low-magnitude catalog. The New Zealand CSEP region combines subduction and crustal deformation. Chile covers a long subduction corridor. Japan C samples the Japan and Kuril trench environment. Table 1 lists the frozen prospective adapters; retrospective windows differ where catalog provenance required it.
 
-The local frailty score is
+| Region | Grid | Target threshold | Depth | Retrospective scoring interval | Events |
+|---|---:|---:|---:|---|---:|
+| California RELM | 7,682 cells, 0.1 deg | M >= 2.5 | all protocol depths | 2014-01-07 to 2018-12-31 | 3,619 |
+| New Zealand CSEP | 6,343 cells, 0.1 deg | M >= 4.0 | 0--40 km | 2008-01-01 to 2025-12-31 | 2,270 |
+| Chile subduction | 1,560 cells, 0.5 deg | M >= 4.5 | 0--100 km | 2015-01-01 to 2025-12-31 | 1,909 |
+| Japan C | 572 cells, 0.5 deg | M >= 5.0 | 0--100 km | 2004-01-01 to pre-Tohoku 2011-03-11 | 354 |
 
-`F_local,t(j) = log[(a0 + Y_t(j))/(a0 + X_t(j))]`,
+California, Chile, and the prospective Japan stream use USGS ANSS ComCat FDSN data. New Zealand uses the GeoNet FDSN service. The retrospective Japan experiment uses the historical catalog associated with the FERN benchmark; prospective Japan targets come from ComCat and are therefore reported with a catalog-continuity warning. Raw responses, normalized catalogs, and SHA-256 manifests are retained.
 
-with prior exposure `a0 = 0.673873`. A 0.089383 neighborhood mixture is applied. Negative scores and values below the minimum log-frailty threshold 0.005165 are clipped to zero. The signal therefore promotes persistent positive emergence but does not create compensating negative suppression.
+### 3.2 Evidence chronology and leakage controls
 
-### 3.3 Conservative background tilt
+The development path was sequential. Earlier models motivated the fast-minus-slow architecture; target outcomes were opened during model development. We therefore label all four daily-grid results retrospective development evidence. Leave-one-region-out training prevents direct target-region fitting but does not restore prospective blindness after a target catalog has been inspected.
 
-The combined score is
+Three controls target shortcut learning. First, regional coordinates are centered, rotated into a principal along/cross frame, and scaled, while the network acts on candidate-relative displacement. Second, the target region is absent from training for its ensemble. Third, mismatched-context and time-shuffled interventions are scored. In the final three-seed contrastive ensemble, mean log gain was positive in all four held-out regions and the 90-day stationary-block lower bound exceeded zero in each. The context-permutation and time-shuffle drops were also positive in every region, indicating that the model used causal history rather than only static candidate position. These interventions establish dependence within the constructed benchmark; they do not prove a physical causal mechanism.
 
-`S_t(j) = 2.926204 R_t(j) + 0.582796 F_t(j)`.
+### 3.3 Scoring
 
-Let `p0,t(j)` be normalized ETAS background probability. The tilted distribution is
+For N target earthquakes and forecasts A and B with equal total expected count, information gain per earthquake is
 
-`p_tilt,t(j) proportional to p0,t(j) exp[min(S_t(j), 4.0)]`.
+`IGPE(A,B) = (1/N) sum_i log(lambda_A,i / lambda_B,i)`.
 
-The final background distribution is
+Positive IGPE favors A. `exp(IGPE)` is the geometric mean probability factor. Because daily scores are serially dependent, uncertainty is estimated with a stationary bootstrap over complete issue days [6]. We report 10,000 replicates with mean block lengths of 30 and 90 days and percentile 95% intervals. These intervals quantify replay variability under the chosen dependence resampling; they do not convert development results into confirmatory evidence.
 
-`p_C,t(j) = (1-eta) p0,t(j) + eta p_tilt,t(j)`,
+The frozen prospective test also reports CSEP diagnostics [7--10]. The N-test compares observed and expected counts. The L-test evaluates the absolute likelihood consistency of each conditional Poisson spatial forecast using 2,000 simulations per region-day. The R-test compares the challenger with ETAS. Results are displayed daily and cumulatively, per region and pooled. Calibration tests are secondary to the preregistered IGPE endpoint.
 
-where `eta = 0.275925`. Therefore at least 72.4% of the original ETAS background distribution is retained directly in every forecast, in addition to the completely unchanged triggered component.
+## 4. Retrospective results
 
-### 3.4 Regional exposure normalization
+### 4.1 Held-out contrastive mechanism test
 
-Catalog thresholds and cell scales differ substantially among California, New Zealand, and Chile. For transfer regions, raw renewal exposure is multiplied by
+The three-seed leave-one-region-out ensemble produced positive contrastive log gain in every target region: 0.00534 in California, 0.02815 in New Zealand, 0.01913 in Chile, and 0.00681 in Japan C. The corresponding 90-day stationary-block lower bounds were 0.00279, 0.02012, 0.01215, and 0.00359. Permuting context reduced mean gain by 0.00506, 0.00062, 0.00409, and 0.00285; shuffling history in time reduced it by 0.00260, 0.00157, 0.00120, and 0.00335, respectively. The smaller New Zealand intervention drop cautions that much of its contrastive advantage may be relatively stable spatial structure.
 
-`c_region = 1 / mean_j[B_j D_pre]`,
+### 4.2 Support restriction
 
-where `B_j` is frozen ETAS background mass and `D_pre` is the number of days strictly before the evaluation period. The constant is computed only from pre-evaluation information and then frozen. It is not updated using retrospective or prospective target events. The formal prospective values are 1.0 for California, 0.4772598373 for New Zealand, and 4.2610459998 for Chile.
+On the opened 2014--2018 California daily grid, the support-restricted fixed expert gained 0.01070 IGPE over ETAS (3,619 events), with lower bounds of 0.00659 and 0.00629 for 30- and 90-day blocks. Relative to the safe forecast, it gained 0.00491 IGPE, with lower bounds 0.00152 and 0.00084. Every annual difference from the safe forecast was non-negative, although the 2018 value was only 0.00009. By contrast, global renormalization without the support restriction lost 0.00076 IGPE relative to the safe model. The support restriction therefore corrected an observed failure mode, but the rule was selected after seeing California outcomes.
 
-## 4. Data and regional adapters
+Zero-refit transfer of the same support rule yielded positive mean IGPE against ETAS in New Zealand (0.02752), Chile (0.01221), and pre-Tohoku Japan C (0.00288), with positive 30- and 90-day lower bounds. It did not uniformly improve the regional safe forecast: mean differences were -0.00294, +0.00148, and +0.00137, and the uncertainty bounds for the latter two included zero. This motivated the evidence hurdle.
 
-### 4.1 California RELM
+### 4.3 Evidence-gated daily-grid replay
 
-California forecasts use the RELM spatial mask with 7,682 cells at 0.1-degree spacing, a minimum magnitude of 2.5, and the USGS ANSS ComCat FDSN catalog. The baseline is the reproduced ComCat_25 ETAS model. CH-008 renewal neighborhoods follow the frozen UCERF3 fault network. State warm-up begins in 2007; 2014--2018 is the only parameter-selection interval; 2019 and later events were excluded from fitting.
+Table 2 gives the final retrospective replay used to freeze the prospective policy. The gate begins at the safe forecast independently in every region. It strongly activates in California, never activates in New Zealand or Japan C, and briefly activates in Chile. Against ETAS, all four regional means and both reported lower bounds are positive.
 
-### 4.2 New Zealand CSEP
+| Region | N | IGPE vs ETAS | 30-day lower | 90-day lower | IGPE vs safe | Ever qualified |
+|---|---:|---:|---:|---:|---:|---|
+| California | 3,619 | 0.009437 | 0.005884 | 0.005859 | 0.003655 | Yes |
+| New Zealand | 2,270 | 0.030459 | 0.019435 | 0.019649 | 0.000000 | No |
+| Chile | 1,909 | 0.010728 | 0.007602 | 0.006935 | -0.0000045 | Yes |
+| Japan C | 354 | 0.001503 | 0.001025 | 0.001001 | 0.000000 | No |
 
-New Zealand uses the published CSEP mask with 6,343 scoring cells at 0.1-degree spacing, represented internally by 302 active 0.5-degree latent cells. Events are obtained from the GeoNet FDSN Event Web Service with magnitude at least 4.0 and depth from 0 km inclusive to 40 km exclusive. ETAS was fit on 1987--2007 and evaluated on 2008--2025.
+Across 8,152 events, summed information gain against ETAS was 124.306 nats, corresponding to a descriptive event-weighted IGPE of 0.015249 and probability factor 1.01537. This pooled number has no preregistered retrospective interval and should not be interpreted as confirmatory.
 
-### 4.3 Chile subduction corridor
+The failure is also informative. For the three external regions, the event-weighted gated difference from the safe forecast was -0.0000019 IGPE. The fixed neural expert had lost materially to safe in New Zealand, and the hurdle successfully prevented that transfer. In Chile, however, short activation around the threshold incurred a total loss of 0.0087 nat, or -0.0000045 per event. Therefore the preregistered development admission rule requiring non-negative external event-weighted and macro differences from safe did not pass. The gate is a high-conservatism transport device, not demonstrated dominance over the safe forecast.
 
-Chile uses a rectangular corridor from 76 W to 66 W and 56 S to 17 S, containing 1,560 cells at 0.5-degree spacing. The USGS ANSS ComCat FDSN catalog is filtered to magnitude at least 4.5 and depth from 0 km inclusive to 100 km exclusive. ETAS was fit on 2000--2014 and evaluated on 2015--2025. This two-dimensional depth-filtered representation does not separately model interface, intraslab, and shallow crustal regimes; that limitation is retained explicitly rather than tuned after inspection.
+![Figure 2. Retrospective IGPE of the evidence-gated challenger relative to frozen ETAS. Points show regional means; thick and thin intervals are 30- and 90-day stationary-bootstrap 95% intervals. Every regional lower bound is positive, but all target data were opened during development.](figures/retrospective-igpe.png)
 
-The three adapters, thresholds, grid hashes, baseline parameters, challenger code hashes, and catalog endpoints are fixed in the prospective protocol. Catalog responses, normalized rows, state files, forecasts, and manifests are stored with SHA-256 identities.
+## 5. Frozen prospective test
 
-## 5. Experimental design and scoring
+### 5.1 Research question and activation
 
-### 5.1 Parameter selection
+The confirmatory question is: **Across tectonically distinct regions, does the frozen causal spatial correction achieve positive prospective information gain over frozen ETAS without degrading CSEP count and likelihood calibration?** The experiment activates on the first atomic forecast that publishes all four regions for the same next-UTC-day target. No dry run is required. No forecast created after its target window begins can be backfilled or scored as prospective.
 
-The CH-008 parameter search used 64 scrambled Sobol candidates plus a control candidate on California 2014--2018. Selection used a robust annual objective rather than pooled mean alone. Candidate 43 was selected. Boundary-sensitivity checks expanded the renewal-weight upper bound from 2.5 to 4.0 and background-mixture upper bound from 0.3 to 0.5 without accessing later validation. The selected renewal weight 2.926204 lies in the expanded regime; the selected mixture 0.275925 does not lie at its bound.
+The planned duration is 365 consecutive target days with no calendar extension. At least 500 pooled target earthquakes are required; otherwise the primary conclusion is “inconclusive.” All regions remain in the analysis regardless of performance or downtime. A model, feature, geometry, threshold, catalog, or parameter change requires a new protocol.
 
-### 5.2 Information gain
+### 5.2 Primary and secondary endpoints
 
-For observed target events `i=1,...,N`, the primary paired event score is
+The primary endpoint is pooled paired IGPE of the challenger against frozen ETAS using catalog-settled final scores. Success requires all three conditions: mean IGPE greater than zero, the 95% stationary-bootstrap lower bound greater than zero with a 30-day mean block, and the analogous lower bound greater than zero with a 90-day mean block. Ten thousand replicates are fixed. Regional results are reported without post-hoc exclusion but are not separate pass/fail gates.
 
-`IGPE = (1/N) sum_i log[lambda_C(t_i,x_i) / lambda_E(t_i,x_i)]`.
+Secondary endpoints are per-region and pooled CSEP N-, L-, and R-tests, daily and cumulative. The challenger is count-conserving by design, so the N-test should match ETAS; a difference flags a pipeline defect. The L-test examines absolute consistency, and the R-test compares relative fit. Secondary failures qualify interpretation even when the IGPE endpoint passes.
 
-Because CH-008 and ETAS have equal domain-integrated daily rate by construction, their compensator difference is zero. The event-location log ratio is therefore also the full paired log-likelihood difference per event for these forecasts. `exp(IGPE)` is reported as a relative probability-density factor. Positive IGPE favors CH-008; negative IGPE favors ETAS.
+Catalog snapshots are immutable. Initial scores are provisional; after a seven-day settlement delay they are recomputed and labeled final while forecasting continues daily. This delay is for catalog revision, not a waiting period. Every forecast and catalog object has a manifest and SHA-256 digest.
 
-Temporal dependence invalidates an independent-event confidence calculation. Uncertainty is estimated with 10,000-replicate stationary daily block bootstraps at mean block lengths of 30 and 90 days [5]. Annual or multi-year slices are reported as stability diagnostics and are not independently optimized.
+### 5.3 Frozen parameters
 
-### 5.3 Evidence labels
+The challenger-wide parameters are: 0.99 active ETAS quantile, 0.5 mixture fraction, Bayes-factor hurdle 20, initial log evidence zero, 256 context events, 32 recent events, and three ensemble members. Table 3 reports the observed range of regional ETAS calibrations. These are fitted regional parameters, not transferable universal constants.
 
-The evidence hierarchy is deliberately conservative:
+| Parameter | Minimum | Maximum | Role |
+|---|---:|---:|---|
+| magnitude reference | 2.500 | 5.000 | catalog threshold |
+| beta | 2.147 | 2.366 | magnitude density |
+| log10 mu | -8.546 | -6.333 | background rate |
+| log10 K0 | -2.672 | 0.228 | productivity |
+| a | 1.556 | 2.657 | magnitude productivity |
+| log10 c | -2.798 | -2.156 | short-time offset |
+| omega | -0.0619 | 0.0404 | temporal decay adjustment |
+| log10 tau | 3.208 | 3.838 | temporal taper |
+| log10 d | -0.773 | 2.317 | spatial scale |
+| gamma | 0.581 | 1.011 | magnitude-spatial scaling |
+| rho | 0.557 | 1.014 | spatial tail exponent |
 
-1. **Development validation:** California 2019--2022 was untouched during CH-008 fitting, but it remained part of the broader iterative research program.
-2. **Supportive later retrospective:** California 2023--18 August 2026 was locked for CH-008 evaluation, but predecessor experiments had previously scored portions of this period. It is not described as pristine independent confirmation.
-3. **Exploratory external transfer:** New Zealand and Chile use zero-refit parameter transfer, but each regional adapter freeze and its result artifact occurred in the same commit. Their results are external evidence, not preregistered confirmation.
-4. **Operational dry run:** September 2026 verifies daily publication, state advancement, scoring, incident handling, and public reporting. It is explicitly excluded from the scientific prospective claim.
-5. **Formal prospective test:** The 365-day protocol is frozen before activation; no target events may be used for refitting, feature selection, regional exclusion, or backfilled forecasts.
+![Figure 3. Prospective evaluation logic. A single atomic issue opens four regional target windows. Forecasts are immutable before the target day; provisional scores continue daily, final scores follow catalog settlement, and the primary decision is made after 365 days only if at least 500 pooled events are observed.](figures/prospective-protocol.png)
 
-## 6. Results
+## 6. Discussion
 
-### 6.1 California development validation
+The retrospective evidence answers the first question narrowly: a constrained hybrid can improve the log score of ETAS across four heterogeneous replays. The network's role is not to replace ETAS. It proposes where, within already elevated ETAS support, some rate should move. Count conservation makes the comparison interpretable and prevents the neural component from winning through a separate rate forecast.
 
-On 5,204 California events in 2019--2022, CH-008 achieved IGPE +0.005213 relative to ETAS (relative factor 1.00523). The 95% stationary-block intervals were [0.001982, 0.008880] for 30-day blocks and [0.001844, 0.009216] for 90-day blocks. Every calendar year was positive. Gain increased in the prespecified low-ETAS subset (+0.022916), for magnitude at least 3.5 (+0.006805), and for magnitude at least 4.0 (+0.008580).
+The results also show why unrestricted claims would be premature. The support rule was chosen after California outcomes were visible. New Zealand's safe model outperformed the fixed neural expert, and the final hurdle avoided that loss only by remaining inactive. Chile crossed the hurdle briefly and produced a tiny loss relative to safe. Moreover, catalogs, magnitude thresholds, spatial grids, and retrospective periods differ by region. Positive IGPE against ETAS across these replays is therefore evidence of a reusable mechanism, not proof of universal tectonic transfer.
 
-Renewal alone achieved +0.004411. The full model exceeded renewal alone by +0.000802 IGPE; the 30-day and 90-day lower bounds for this frailty increment were +0.000409 and +0.000401, respectively. Thus frailty contributed a small but separable gain rather than merely duplicating renewal age.
+The design combines ideas from seismology, causal prediction, and online decision theory. ETAS contributes a scientifically interpretable intensity and high-rate support. Relative coordinates and leave-one-region-out training reduce geographic memorization. History interventions ask whether predictions depend on the correct temporal context. The evidence hurdle treats the learned correction as a risky expert that must earn deployment using only past scores. None of these devices alone guarantees validity; together they make failure modes observable and restrict their consequences.
 
-### 6.2 Later California retrospective period
+Tectonic labels are deliberately absent from the final gate. Earlier attribution experiments indicated that regime information could explain model behavior, but a fitted tectonic mixture did not establish a reliable improvement. The frozen experiment instead asks whether one invariant formulation transfers across regimes. Region-specific coordinate frames and ETAS calibrations are permitted because they are estimated before scoring and are part of each catalog adapter; the neural architecture, support rule, and gate are common.
 
-On 3,995 events from 2023 through 18 August 2026, CH-008 achieved +0.007865 IGPE (relative factor 1.00790), with 30-day interval [0.005093, 0.010623] and 90-day interval [0.005369, 0.010914]. All annual slices were positive. Renewal alone achieved +0.006049; the full-model increment was +0.001816, with positive 30-day and 90-day lower bounds (+0.001238 and +0.001270). This period supports temporal persistence of the signal but retains the retrospective qualification described above.
+## 7. Limitations
 
-### 6.3 External-region transfer
+First, all reported outcomes are retrospective and were available during the research program. Leave-one-region-out fitting is weaker than a genuinely untouched stream. Second, the four experiments do not share identical catalog provenance or completeness. In particular, historical and prospective Japan catalogs differ. Third, the conditional Poisson CSEP tests simplify the overdispersion present in clustered seismicity; their interpretation must accompany, not replace, paired score comparisons [10,11]. Fourth, low target counts, especially in Japan C, can produce low-power regional tests. Fifth, a positive log-score difference is not an earthquake-prediction capability and provides no deterministic warning. Finally, the Bayes-factor terminology describes a likelihood-ratio evidence policy; without assuming the safe forecast is the true conditional model, the threshold is not a guaranteed type-I error bound.
 
-The zero-refit New Zealand transfer evaluated 2,270 events from 2008--2025 and produced +0.018561 IGPE (relative factor 1.01873; total log-likelihood gain 42.13). Its 30-day and 90-day intervals were [0.012006, 0.029671] and [0.011817, 0.031357]. All six non-overlapping three-year epochs were positive.
+## 8. Conclusions
 
-The zero-refit Chile transfer evaluated 1,909 events from 2015--2025 and produced +0.009718 IGPE (relative factor 1.00977; total gain 18.55). Its 30-day and 90-day intervals were [0.006862, 0.013219] and [0.006321, 0.014348]. All eleven annual values were positive.
+A causal, support-restricted, evidence-gated spatial correction achieved positive retrospective IGPE against frozen ETAS in California, New Zealand, Chile, and Japan C. The pooled descriptive gain was 0.01525 nat per earthquake. The result is nonetheless qualified: the correction did not demonstrate uniform superiority over the regional safe forecast, and the external aggregate missed that development criterion by approximately two millionths of a nat per earthquake. The correct conclusion is therefore not that ETAS has been superseded, but that a tightly constrained residual merits independent prospective evaluation.
 
-These external results are encouraging because tectonic setting, catalog density, thresholds, and geometries differ from California. They cannot by themselves establish universal transferability, and their adapter-freeze provenance requires the exploratory label.
+The model, regional adapters, decision rule, and failure handling are now frozen in a 365-day four-region experiment. Its answer will be based on forecasts issued before observation, a minimum of 500 pooled events, paired IGPE with two dependence scales, and CSEP calibration diagnostics. Until that experiment matures, the prospective question remains open.
 
-![Figure 2. Mean information gain per earthquake relative to frozen ETAS. Thick and thin intervals show 95% stationary daily block-bootstrap intervals with mean block lengths of 30 and 90 days, respectively. All values are retrospective or exploratory, not the formal prospective endpoint.](figures/preprospective-evidence.png)
+## 9. Reproducibility and data availability
 
-### 6.4 Operational dry run
+Source code, frozen configurations, model weights, protocol hashes, and the public scorecard are available at https://github.com/ebolarium/earthquake-automata-challenge_2 and https://etas2.bboga.com. The repository records the exact protocol, regional ETAS parameter files, neural ensemble digests, and forecast runtime digests. Retrospective result artifacts originated in the preceding development repository and are reported with their claim-boundary metadata. Public catalogs are retrieved from USGS ANSS ComCat and GeoNet FDSN endpoints. Raw responses are archived by the operational pipeline subject to provider terms. The software and manuscript repository should be cited by release or commit hash in any reproduction.
 
-The fixed dry-run target calendar covered 1--14 September 2026. As of 16 September, 12 days had provisional scores and six had completed the seven-day catalog-settlement delay. Two early days were missed because of a software defect and are excluded under the frozen downtime policy; they were not backfilled or assigned zero information gain. Across 38 provisional events, pooled IGPE was +0.021934. Across the 12 events then final, pooled IGPE was +0.032431. These small, incomplete operational samples are reported only to document system behavior and must not be interpreted as evidence for the formal claim.
+## 10. Declarations
 
-## 7. Frozen prospective evaluation
-
-The formal protocol `ch008-three-region-prospective-v1` activates on the 23 September 2026 issue cycle. Its first target window is 24 September 2026 00:00--24:00 UTC. Daily forecasts are generated independently for California, New Zealand, and Chile using only catalog data strictly before issue time and must be persisted before the target window opens. Publication after the deadline is rejected; retrospective forecast generation is prohibited.
-
-The test lasts 365 fixed calendar days. First-observed catalog scores are labeled provisional. They are recomputed after seven days and the settled revision is labeled final. The primary endpoint pools final paired log gains across all three regions and divides by the pooled target-event count. Promotion requires all of the following:
-
-- at least 500 pooled target earthquakes;
-- mean pooled final IGPE greater than zero;
-- 95% lower bounds greater than zero under both 30-day and 90-day stationary daily block bootstraps with 10,000 replicates;
-- all three regions remaining operationally eligible;
-- no post-hoc regional exclusion and no calendar extension.
-
-If fewer than 500 events occur, the result is inconclusive rather than failed. A region becomes ineligible for the primary pooled claim if publication misses exceed 5% of its 365 scheduled region-days (19 days) or reach seven consecutive days. A scoring-service outage after an on-time forecast defers scoring and does not count as a publication miss. Missed publications are excluded from numerator and denominator, never imputed as zero IGPE. Invalidation makes the pooled three-region claim inconclusive, while secondary reporting continues.
-
-The frozen model, ETAS baseline, regional adapters, and protocol are content-addressed. Any model or feature change requires a new protocol. Dry-run outcomes cannot be used to refit parameters. Public status and machine-readable state are available at https://etas.bboga.com/.
-
-![Figure 3. Evidence timeline and separation of model development, qualified pre-prospective evaluation, operational dry run, and the frozen formal prospective test.](figures/evidence-timeline.png)
-
-## 8. Discussion
-
-CH-008's main scientific contribution is not a large raw likelihood advantage. It is a constrained test of where ETAS may leave residual spatial information. By conserving expected rate and retaining the complete triggered component, the design isolates the hypothesis that direct background risk is not fully stationary. The positive renewal-only results indicate that magnitude-marked elapsed age carries information. The additional positive full-minus-renewal results indicate that persistent posterior background excess also carries information after expected exposure is accounted for.
-
-The gain is modest in California: relative probability-density factors are about 1.005--1.008 over broad samples. Small average gains can nevertheless accumulate over thousands of events and can be scientifically meaningful when measured against a strong nested baseline. They should not be confused with deterministic predictability or direct societal utility. The larger exploratory gains in New Zealand and Chile may reflect genuine portability, regional scaling, catalog properties, geometry, or some combination of these. Only frozen prospective operation can constrain those interpretations.
-
-The model also has a useful falsification path. It can fail if prospective mean gain is non-positive, if temporal-block uncertainty includes zero, if gain is confined to one region, if the event gate is not reached, or if operations violate the frozen eligibility rules. Because the ETAS total rate is preserved, poor spatial reallocation cannot be hidden by tuning the expected count.
-
-## 9. Limitations
-
-Several limitations are material. First, all reported performance results before the formal activation are retrospective or operational. The evidence labels prevent them from being promoted to preregistered confirmation. Second, catalog completeness and network evolution can affect inferred background states. Fixed magnitude and depth thresholds reduce but do not eliminate this concern. Third, the Chile adapter treats a complex subduction system as one depth-filtered two-dimensional field. Fourth, ETAS posterior background probabilities inherit any misspecification or short-term aftershock incompleteness in the baseline. Fifth, `c_region` standardizes exposure scale but cannot guarantee tectonic equivalence. Sixth, the small dry-run sample is operational evidence only. Finally, the prospective test covers three regions and one year; even a successful result would require independent reproduction and broader evaluation before strong claims of geographic generality.
-
-## 10. Reproducibility and availability
-
-Source code, frozen configurations, model files, region definitions, result manifests, tests, and protocol documentation are available at https://github.com/ebolarium/earthquake-automata-challenge. The frozen pre-activation protocol and runtime snapshot is repository commit `6206583`; manuscript sources are maintained in the `paper/` directory. The live dashboard and machine-readable API are at https://etas.bboga.com/.
-
-Input catalogs are obtained from the USGS ANSS ComCat FDSN Event Web Service and the GeoNet FDSN Event Web Service under their respective terms. The repository records source endpoints, query rules, hashes, and clean export procedures. Large catalog snapshots and daily binary forecast artifacts are stored operationally outside Git; availability of those artifacts should be stated explicitly in the final archived version after a durable public-access package is chosen.
-
-## 11. Declarations
-
-**Author contributions.** Saban Baris Boga conceived the study, defined the research objective and evaluation constraints, supervised the software-assisted implementation, reviewed the experiments, interpreted the results, and prepared the manuscript.
+**Author contributions.** Saban Baris Boga conceived the study, defined the research question and evaluation constraints, directed the software-assisted implementation, reviewed the experiments, interpreted the results, and prepared the manuscript.
 
 **Competing interests.** The author declares no competing interests.
 
 **Funding.** This independent research received no external funding.
 
-**Generative AI disclosure.** Generative AI systems were used as research-assistance tools for software implementation, documentation synthesis, language editing, and preparation of the manuscript draft under the author's direction. They are not authors. The author retains responsibility for the study, verification, interpretation, and submitted text.
+**Generative AI disclosure.** Generative AI systems were used as research-assistance tools for software implementation, documentation synthesis, language editing, and preparation of the manuscript draft under the author's direction. They are not authors. The author retains responsibility for verification, interpretation, and the submitted text.
 
-**Ethics and safety.** The study uses public earthquake catalogs and does not involve human or animal subjects. The forecasts are research outputs and are not earthquake warnings or substitutes for official hazard information.
+**Ethics and safety.** The study uses public earthquake catalogs and does not involve human or animal subjects. Forecasts are research outputs, not earthquake warnings, operational hazard products, or substitutes for official guidance.
 
 ## References
 
 1. Ogata, Y. (1988). Statistical models for earthquake occurrences and residual analysis for point processes. *Journal of the American Statistical Association*, 83, 9--27. https://doi.org/10.1080/01621459.1988.10478560
-2. Mizrahi, L., Nandan, S., & Wiemer, S. (2021). Embracing data incompleteness for better earthquake forecasting. *Journal of Geophysical Research: Solid Earth*, 126, e2021JB022379. https://doi.org/10.1029/2021JB022379
-3. Matthews, M. V., Ellsworth, W. L., & Reasenberg, P. A. (2002). A Brownian model for recurrent earthquakes. *Bulletin of the Seismological Society of America*, 92, 2233--2250. https://doi.org/10.1785/0120010267
-4. Field, E. H., et al. (2013). Uniform California Earthquake Rupture Forecast, Version 3 (UCERF3): The time-independent model. U.S. Geological Survey Open-File Report 2013-1165. https://doi.org/10.3133/ofr20131165
-5. Politis, D. N., & Romano, J. P. (1994). The stationary bootstrap. *Journal of the American Statistical Association*, 89, 1303--1313. https://doi.org/10.1080/01621459.1994.10476870
-6. Rhoades, D. A., et al. (2010). Establishing a New Zealand earthquake forecast testing centre. *Pure and Applied Geophysics*, 167, 877--892. https://doi.org/10.1007/s00024-010-0082-4
-7. Zlydenko, O., et al. (2023). A neural encoder for earthquake rate forecasting. *Scientific Reports*, 13. https://doi.org/10.1038/s41598-023-38033-9
-8. Mizrahi, L., Nandan, S., & Wiemer, S. (2022). ETAS: Python package for fitting and simulating epidemic-type aftershock sequence models (software). Zenodo. https://doi.org/10.5281/zenodo.6583992
+2. Ogata, Y. (1998). Space-time point-process models for earthquake occurrences. *Annals of the Institute of Statistical Mathematics*, 50, 379--402. https://doi.org/10.1023/A:1003403601725
+3. Zlydenko, O., et al. (2023). A neural encoder for earthquake rate forecasting. *Scientific Reports*, 13, 12350. https://doi.org/10.1038/s41598-023-38033-9
+4. Dascher-Cousineau, K., et al. (2023). Using deep learning for flexible and scalable earthquake forecasting. *Geophysical Research Letters*, 50, e2023GL103909. https://doi.org/10.1029/2023GL103909
+5. Stockman, S., Lawson, D. J., & Werner, M. J. (2023). Forecasting the 2016--2017 Central Apennines earthquake sequence with a neural point process. *Earth's Future*, 11, e2023EF003777. https://doi.org/10.1029/2023EF003777
+6. Politis, D. N., & Romano, J. P. (1994). The stationary bootstrap. *Journal of the American Statistical Association*, 89, 1303--1313. https://doi.org/10.1080/01621459.1994.10476870
+7. Schorlemmer, D., Gerstenberger, M. C., Wiemer, S., Jackson, D. D., & Rhoades, D. A. (2007). Earthquake likelihood model testing. *Seismological Research Letters*, 78, 17--29. https://doi.org/10.1785/gssrl.78.1.17
+8. Zechar, J. D., Gerstenberger, M. C., & Rhoades, D. A. (2010). Likelihood-based tests for evaluating space-rate-magnitude earthquake forecasts. *Bulletin of the Seismological Society of America*, 100, 1184--1195. https://doi.org/10.1785/0120090192
+9. Rhoades, D. A., Schorlemmer, D., Gerstenberger, M. C., Christophersen, A., Zechar, J. D., & Imoto, M. (2011). Efficient testing of earthquake forecasting models. *Acta Geophysica*, 59, 728--747. https://doi.org/10.2478/s11600-011-0013-5
+10. Rhoades, D. A., et al. (2010). Establishing a New Zealand earthquake forecast testing centre. *Pure and Applied Geophysics*, 167, 877--892. https://doi.org/10.1007/s00024-010-0082-4
+11. Mizrahi, L., Nandan, S., & Wiemer, S. (2024). Developing, testing, and communicating earthquake forecasts: Current practices and future directions. *Reviews of Geophysics*, 62, e2023RG000823. https://doi.org/10.1029/2023RG000823
+12. Mizrahi, L., Nandan, S., & Wiemer, S. (2021). Embracing data incompleteness for better earthquake forecasting. *Journal of Geophysical Research: Solid Earth*, 126, e2021JB022379. https://doi.org/10.1029/2021JB022379
+13. Field, E. H., et al. (2013). Uniform California Earthquake Rupture Forecast, Version 3 (UCERF3): The time-independent model. U.S. Geological Survey Open-File Report 2013-1165. https://doi.org/10.3133/ofr20131165
+14. Mizrahi, L., Nandan, S., & Wiemer, S. (2022). ETAS: Python package for fitting and simulating epidemic-type aftershock sequence models. Zenodo. https://doi.org/10.5281/zenodo.6583992
