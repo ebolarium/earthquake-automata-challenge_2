@@ -130,6 +130,8 @@ def validate_state_artifact(
     *,
     expected_state_shape: tuple[int, ...],
     regional: bool,
+    evidence_gate: bool = False,
+    incumbent_model_sha256: str | None = None,
 ) -> dict:
     """Validate one downloaded prospective state against its manifest."""
 
@@ -141,7 +143,14 @@ def validate_state_artifact(
     regional_names = {
         "event_etas_rates", "event_background_probabilities", "event_cells"
     }
-    expected_names = common | (regional_names if regional else set())
+    evidence_names = {
+        "background_root_days", "background_root_values", "gate_log_bayes_factor"
+    }
+    expected_names = (
+        common
+        | (regional_names if regional else set())
+        | (evidence_names if evidence_gate else set())
+    )
     if set(arrays.files) != expected_names:
         raise ValueError("state artifact arrays disagree with region contract")
 
@@ -157,8 +166,29 @@ def validate_state_artifact(
         raise ValueError("state catalog cutoff disagrees with manifest")
     if scalar("etas_model_sha256") != manifest["baseline_model_sha256"]:
         raise ValueError("state ETAS model hash disagrees with manifest")
-    if scalar("ch008_model_sha256") != manifest["challenger_model_sha256"]:
+    expected_incumbent = (
+        manifest["challenger_model_sha256"]
+        if incumbent_model_sha256 is None else incumbent_model_sha256
+    )
+    if scalar("ch008_model_sha256") != expected_incumbent:
         raise ValueError("state CH-008 model hash disagrees with manifest")
+
+    if evidence_gate:
+        root_days = np.asarray(arrays["background_root_days"])
+        root_values = np.asarray(arrays["background_root_values"])
+        gate_evidence = np.asarray(arrays["gate_log_bayes_factor"])
+        if (
+            root_days.ndim != 1
+            or root_values.ndim != 2
+            or root_values.shape[0] != len(root_days)
+            or not len(root_days)
+            or np.any(np.diff(root_days.astype(np.int64)) <= 0)
+            or np.any(~np.isfinite(root_values))
+            or np.any(root_values < 0)
+            or gate_evidence.shape != ()
+            or not np.isfinite(float(gate_evidence))
+        ):
+            raise ValueError("invalid evidence-gate state arrays")
 
     event_ids = np.asarray(arrays["event_ids"])
     event_count = len(event_ids)

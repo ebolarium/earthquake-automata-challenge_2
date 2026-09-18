@@ -109,7 +109,15 @@ def verify_region(connection, client, storage, protocol: dict, region: dict, as_
         raise ValueError("state model IDs disagree with protocol")
     etas_sha = sha256_file(ROOT / region["etas_model_path"])
     ch008_sha = sha256_file(CH008_MODEL_PATH)
-    if manifest["baseline_model_sha256"] != etas_sha or manifest["challenger_model_sha256"] != ch008_sha:
+    evidence_gate = protocol.get("forecast_family") == "causal_evidence_gate"
+    challenger_sha = (
+        sha256_file(ROOT / protocol["challenger"]["model_path"])
+        if evidence_gate else ch008_sha
+    )
+    if (
+        manifest["baseline_model_sha256"] != etas_sha
+        or manifest["challenger_model_sha256"] != challenger_sha
+    ):
         raise ValueError("state model hashes disagree with locked files")
     builder_name = manifest.get("method", {}).get(
         "state_builder", "scripts/build_prospective_initial_states.py"
@@ -127,7 +135,7 @@ def verify_region(connection, client, storage, protocol: dict, region: dict, as_
         raise ValueError("state replay hash disagrees")
     expected_state_id = model_state_id(
         protocol["protocol_id"], region["region_id"], as_of, catalog_cutoff,
-        manifest["catalog_history_sha256"], etas_sha, ch008_sha,
+        manifest["catalog_history_sha256"], etas_sha, challenger_sha,
     )
     if expected_state_id != stored_state_id:
         raise ValueError("state identity disagrees")
@@ -140,6 +148,8 @@ def verify_region(connection, client, storage, protocol: dict, region: dict, as_
             manifest,
             expected_state_shape=state_shape(region),
             regional=region["region_id"] != "california-relm",
+            evidence_gate=evidence_gate,
+            incumbent_model_sha256=ch008_sha if evidence_gate else None,
         )
     return {
         "region_id": region["region_id"],

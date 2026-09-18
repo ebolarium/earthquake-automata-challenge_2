@@ -94,6 +94,45 @@ class ProspectiveStateTest(unittest.TestCase):
         self.assertEqual(result["events"], 2)
         self.assertEqual(result["state_shape"], [2])
 
+    def test_evidence_gate_state_tracks_incumbent_and_challenger_separately(self):
+        as_of = "2026-08-19T00:00:00+00:00"
+        arrays = {
+            "event_ids": np.array([], dtype="<U1"),
+            "origin_time_ns": np.array([], dtype=np.int64),
+            "latitudes": np.array([], dtype=float),
+            "longitudes": np.array([], dtype=float),
+            "depths_km": np.array([], dtype=float),
+            "magnitudes": np.array([], dtype=float),
+            "ch008_age": np.array([1.0, 2.0]),
+            "ch008_exposure": np.array([3.0, 4.0]),
+            "ch008_roots": np.array([0.1, 0.2]),
+            "background_root_days": np.array([1, 2], dtype=np.int64),
+            "background_root_values": np.ones((2, 3)),
+            "gate_log_bayes_factor": np.asarray(0.0),
+            "as_of": np.asarray(as_of),
+            "catalog_cutoff": np.asarray("2026-09-18T00:00:00+00:00"),
+            "etas_model_sha256": np.asarray("a" * 64),
+            "ch008_model_sha256": np.asarray("b" * 64),
+        }
+        manifest = {
+            "as_of": as_of,
+            "catalog_cutoff": "2026-09-18T00:00:00+00:00",
+            "events": 0,
+            "snapshot_ids": [],
+            "catalog_history_sha256": catalog_history_sha256(BootstrapCatalog(
+                (), arrays["event_ids"], arrays["origin_time_ns"], arrays["latitudes"],
+                arrays["longitudes"], arrays["depths_km"], arrays["magnitudes"],
+            )),
+            "baseline_model_sha256": "a" * 64,
+            "challenger_model_sha256": "c" * 64,
+        }
+        with self._npz(arrays) as archive:
+            result = validate_state_artifact(
+                archive, manifest, expected_state_shape=(2,), regional=False,
+                evidence_gate=True, incumbent_model_sha256="b" * 64,
+            )
+        self.assertEqual(result["events"], 0)
+
     @staticmethod
     def _npz(arrays):
         import contextlib
