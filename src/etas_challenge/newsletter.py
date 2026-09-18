@@ -93,19 +93,19 @@ class ResendClient:
 
 def confirmation_message(sender: str, email: str, locale: str, confirm_url: str) -> dict:
     if locale == "en":
-        subject = "Confirm your CH-008 daily report subscription"
+        subject = "Confirm your Evidence-Gated Forecast daily report subscription"
         title = "Confirm your subscription"
-        copy = "Use the button below to receive the CH-008 prospective test status report each morning."
+        copy = "Use the button below to receive the Evidence-Gated Forecast Test status report each morning."
         action = "Confirm email address"
         ignore = "If you did not request this, you can ignore this email."
     else:
-        subject = "CH-008 günlük durum raporu aboneliğini doğrula"
+        subject = "Kanıt Kapılı Tahmin günlük durum raporu aboneliğini doğrula"
         title = "Aboneliğini doğrula"
-        copy = "Her sabah CH-008 prospektif test durum raporunu almak için aşağıdaki düğmeyi kullan."
+        copy = "Her sabah Kanıt Kapılı Tahmin Testi durum raporunu almak için aşağıdaki düğmeyi kullan."
         action = "E-posta adresini doğrula"
         ignore = "Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin."
     html = f"""<!doctype html><html><body style="margin:0;background:#f4f6f5;color:#17201e;font-family:Arial,sans-serif">
-<div style="max-width:560px;margin:0 auto;padding:36px 20px"><p style="font-size:11px;color:#087f7a;font-weight:700">CH-008 PROSPECTIVE TEST</p>
+<div style="max-width:560px;margin:0 auto;padding:36px 20px"><p style="font-size:11px;color:#087f7a;font-weight:700">EVIDENCE-GATED FORECAST TEST</p>
 <h1 style="font-size:24px">{title}</h1><p style="font-size:14px;line-height:1.6">{copy}</p>
 <p style="margin:28px 0"><a href="{confirm_url}" style="padding:11px 16px;background:#087f7a;color:#fff;text-decoration:none;border-radius:4px;font-weight:700">{action}</a></p>
 <p style="font-size:11px;color:#68736f">{ignore}</p></div></body></html>"""
@@ -128,7 +128,7 @@ class NewsletterService:
         )
         self.base_url = public_base_url(configured_base) if configured_base else None
         self.sender = sender or os.environ.get(
-            "NEWSLETTER_FROM", formataddr(("CH-008 Prospective Test", "hello@bboga.com"))
+            "NEWSLETTER_FROM", formataddr(("Evidence-Gated Forecast Test", "hello@bboga.com"))
         )
         configured_key = api_key if api_key is not None else os.environ.get("RESEND_API_KEY", "")
         self.client = client or (ResendClient(configured_key) if configured_key else None)

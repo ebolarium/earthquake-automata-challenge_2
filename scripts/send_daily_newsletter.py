@@ -36,7 +36,7 @@ def main() -> int:
     api_key = os.environ.get("RESEND_API_KEY")
     base_url = public_base_url(os.environ.get("NEWSLETTER_PUBLIC_BASE_URL", ""))
     sender = os.environ.get(
-        "NEWSLETTER_FROM", "CH-008 Prospective Test <hello@bboga.com>"
+        "NEWSLETTER_FROM", "Evidence-Gated Forecast Test <hello@bboga.com>"
     )
     if not database_url:
         raise SystemExit("DATABASE_URL is required")
