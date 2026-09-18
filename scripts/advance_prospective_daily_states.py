@@ -33,6 +33,7 @@ from etas_challenge.prospective_protocol import artifact_lane  # noqa: E402
 from etas_challenge.prospective_state import BootstrapCatalog  # noqa: E402
 from etas_challenge.prospective_state import catalog_history_sha256  # noqa: E402
 from etas_challenge.prospective_state import model_state_id  # noqa: E402
+from etas_challenge.prospective_context import load_california_runtime_context  # noqa: E402
 from etas_challenge.training_matrix import sha256_file  # noqa: E402
 
 
@@ -134,6 +135,44 @@ def existing_daily_state(connection, protocol_id: str, region_id: str, as_of):
     ).fetchone()
 
 
+def completed_california_shadow_gain(
+    connection, client, storage, protocol_id: str, region_id: str,
+    target_start, catalog,
+) -> float:
+    """Score fixed versus safe from the already-published completed-day grid."""
+
+    row = connection.execute(
+        """
+        SELECT a.object_key, a.content_sha256, a.byte_count
+        FROM prospective.forecast_runs r
+        JOIN prospective.forecast_artifacts a ON a.run_id = r.run_id
+        JOIN prospective.model_states s ON s.state_id = r.state_id
+        WHERE r.protocol_id = %s AND r.region_id = %s
+          AND r.target_start = %s AND r.status = 'published'
+          AND a.model_id = s.challenger_model_id AND a.artifact_kind = 'grid'
+        """,
+        (protocol_id, region_id, target_start),
+    ).fetchone()
+    if row is None:
+        return 0.0
+    payload = read_verified_object(client, storage, row[0], row[1], int(row[2]))
+    with np.load(io.BytesIO(payload), allow_pickle=False) as grid_archive:
+        if "safe_daily_rates" not in grid_archive.files:
+            return 0.0
+        safe = grid_archive["safe_daily_rates"]
+        fixed = grid_archive["fixed_daily_rates"]
+    event_days = catalog.origin_time_ns // (86_400 * 1_000_000_000)
+    number = int(target_start.timestamp() // 86400)
+    selected = np.flatnonzero(event_days == number)
+    if not len(selected):
+        return 0.0
+    grid = load_california_runtime_context(ROOT).grid
+    cells = grid.cell_indexes(catalog.longitudes[selected], catalog.latitudes[selected])
+    if np.any(cells < 0):
+        raise ValueError("completed California event lies outside the forecast grid")
+    return float(np.sum(np.log(fixed[cells] / safe[cells])))
+
+
 def main() -> int:
     args = parse_args()
     database_url = os.environ.get("DATABASE_URL")
@@ -154,6 +193,10 @@ def main() -> int:
     parent = json.loads(PARENT_MODEL_PATH.read_text(encoding="utf-8"))
     ch008 = json.loads(CH008_MODEL_PATH.read_text(encoding="utf-8"))
     ch008_sha = sha256_file(CH008_MODEL_PATH)
+    challenger_sha = (
+        sha256_file(ROOT / protocol["challenger"]["model_path"])
+        if protocol.get("forecast_family") == "causal_evidence_gate" else ch008_sha
+    )
     simulations = runtime["california_etas_grid"]["simulations"]
     storage = ObjectStorageConfig.from_environment()
     client = storage.client()
@@ -192,6 +235,15 @@ def main() -> int:
                         source, catalog, region, etas_model, parent, ch008, runtime,
                         from_as_of, to_as_of, simulations,
                     )
+                    if protocol.get("forecast_family") == "causal_evidence_gate":
+                        arrays["gate_log_bayes_factor"] = np.asarray(
+                            float(np.asarray(source["gate_log_bayes_factor"]))
+                            + completed_california_shadow_gain(
+                                connection, client, storage, protocol["protocol_id"],
+                                region_id, from_as_of, catalog,
+                            ),
+                            dtype=np.float64,
+                        )
                 else:
                     arrays = advance_regional(
                         source, catalog, prefix_count, region, etas_model, parent,
@@ -204,7 +256,7 @@ def main() -> int:
             catalog_sha = catalog_history_sha256(catalog)
             state_id = model_state_id(
                 protocol["protocol_id"], region_id, to_as_of, cutoff,
-                catalog_sha, etas_sha, ch008_sha,
+                catalog_sha, etas_sha, challenger_sha,
             )
             arrays.update({
                 "as_of": np.asarray(to_as_of.isoformat()),
@@ -235,7 +287,7 @@ def main() -> int:
                 "baseline_model_id": region["baseline_model_id"],
                 "baseline_model_sha256": etas_sha,
                 "challenger_model_id": region["challenger_model_id"],
-                "challenger_model_sha256": ch008_sha,
+                "challenger_model_sha256": challenger_sha,
                 "state_builder_sha256": sha256_file(Path(__file__)),
                 "state_replay_module_sha256": sha256_file(REPLAY_MODULE_PATH),
                 "artifact_key": artifact_key,

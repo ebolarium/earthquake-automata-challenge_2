@@ -582,57 +582,10 @@ def main() -> int:
     if not database_url:
         raise SystemExit("DATABASE_URL is required")
     issue_time = (args.issue_time or datetime.now(timezone.utc)).astimezone(timezone.utc)
-    formal = validate_protocol(ROOT / PROSPECTIVE_PROTOCOL_PATH, ROOT)
-    activation_date = datetime.fromisoformat(
-        formal["automatic_activation"]["activation_issue_date_utc"]
-    ).date()
-
-    if issue_time.date() < activation_date:
-        return run_protocol(args, database_url, issue_time, DRY_RUN_PROTOCOL_PATH)
-
-    import psycopg
-
-    with psycopg.connect(database_url) as connection:
-        formal_status = connection.execute(
-            "SELECT status FROM prospective.protocols WHERE protocol_id = %s",
-            (formal["protocol_id"],),
-        ).fetchone()
-    if formal_status is None:
-        raise SystemExit("formal prospective protocol is not seeded")
-
-    if formal_status[0] != "active":
-        if issue_time.date() != activation_date:
-            raise SystemExit(
-                "formal activation date was missed; retrospective activation is prohibited"
-            )
-        run_command(
-            [
-                sys.executable, "scripts/activate_prospective_protocol.py",
-                "--issue-time", issue_time.isoformat(),
-            ],
-            PROSPECTIVE_PROTOCOL_PATH,
-        )
-
-    result = run_protocol(
-        args, database_url, issue_time, PROSPECTIVE_PROTOCOL_PATH
-    )
-    if issue_time.date() == activation_date:
-        run_command(
-            [
-                sys.executable, "scripts/collect_prospective_catalogs.py",
-                "--lookback-days", str(args.lookback_days),
-                "--cutoff", issue_time.isoformat(),
-            ],
-            DRY_RUN_PROTOCOL_PATH,
-        )
-        run_command(
-            [
-                sys.executable, "scripts/score_prospective_forecasts.py",
-                "--as-of", issue_time.isoformat(),
-            ],
-            DRY_RUN_PROTOCOL_PATH,
-        )
-    return result
+    # This repository intentionally launches only the operational dry run.
+    # A claim-bearing protocol receives a separate immutable config and commit
+    # after the dry run completes; deployment alone cannot auto-promote it.
+    return run_protocol(args, database_url, issue_time, DRY_RUN_PROTOCOL_PATH)
 
 
 if __name__ == "__main__":

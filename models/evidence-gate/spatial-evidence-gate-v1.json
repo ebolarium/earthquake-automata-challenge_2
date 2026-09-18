@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "model_id": "spatial-evidence-gate-v1",
+  "public_name": "Causal Evidence-Gated Spatial Forecast",
+  "analysis_role": "frozen_prospective_shadow_candidate",
+  "incumbent": {
+    "model_path": "models/ch008-boundary-sensitivity-v1.json",
+    "model_sha256": "72e030a4d61c512bb096c1469a409c1cf3d9206fc0d9580f2352e0d604e3fa27"
+  },
+  "safe_expert": {
+    "name": "supported-neighbor renewal incumbent",
+    "acceleration_support_power": 0.714811576419,
+    "acceleration_additive_mix": 0.0797456474975,
+    "residual_scale": 0.742341913469,
+    "source_result_sha256": "b32b13747e31d14b9ec7fde9068bfabe0b55d327316941c72ea0fa55d165778f"
+  },
+  "neural_expert": {
+    "weights_path": "models/evidence-gate/california-ch014-ensemble-v1.npz",
+    "weights_sha256": "6f5a8905f8d26bbb32c1a9c97f818f42ab26b03cf5fc9f0528e8c63d8af263de",
+    "members": 3,
+    "context_events": 256,
+    "candidate_batch_size": 512,
+    "frame": {
+      "center_latitude": 34.6677,
+      "center_longitude": -118.3700768178185,
+      "along_vector": [-0.6335215848796946, 0.773725016715577],
+      "cross_vector": [-0.773725016715577, -0.6335215848796946],
+      "along_scale_km": 408.7560725167186,
+      "cross_scale_km": 121.91971249118637,
+      "median_gap_seconds": 13275.56,
+      "completeness_magnitude": 2.5,
+      "maximum_depth_km": 100.0
+    }
+  },
+  "fixed_expert": {
+    "active_etas_quantile": 0.99,
+    "mixture_fraction": 0.5,
+    "inactive_cell_contract": "exact safe-expert rate",
+    "daily_count_contract": "exact safe-expert expected count"
+  },
+  "evidence_gate": {
+    "alpha": 0.05,
+    "bayes_factor_hurdle": 20.0,
+    "initial_log_bayes_factor": 0.0,
+    "forecast_weight": "max(0,tanh((completed_day_log_bayes_factor-log(20))/2))",
+    "same_day_updates": false,
+    "historical_evidence_carried_into_prospective_start": false
+  },
+  "reporting": {
+    "primary_reference": "frozen ETAS",
+    "safety_reference": "supported-neighbor renewal incumbent",
+    "publish_fixed_expert_shadow": true,
+    "publish_gate_state": true
+  },
+  "claim_boundary": "Developed after California, New Zealand, Chile, and Japan-C outcomes were opened. Deployment must begin with zero gate evidence and is prospective shadow evaluation, not operational earthquake prediction or an established false-activation guarantee."
+}

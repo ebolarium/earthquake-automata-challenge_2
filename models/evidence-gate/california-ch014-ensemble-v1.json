@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "model_id": "california-ch014-logit-ensemble-v1",
+  "output": "models/evidence-gate/california-ch014-ensemble-v1.npz",
+  "output_sha256": "6f5a8905f8d26bbb32c1a9c97f818f42ab26b03cf5fc9f0528e8c63d8af263de",
+  "sources": [
+    {
+      "path": "artifacts/ch014-chronology-regularized-loro-v1/california-relative-fast-slow.pt",
+      "sha256": "bc4a4287dd8ae60e920bb37fd3bc16770fed801fe6fd2c0c5891115883352c84"
+    },
+    {
+      "path": "artifacts/ch014-chronology-seed-14003-v1/california-relative-fast-slow.pt",
+      "sha256": "b4dea0d7886cf8e49ab67f9ca6b0b5a31e37768100d5148d8de7c2ad6935610e"
+    },
+    {
+      "path": "artifacts/ch014-chronology-seed-14004-v1/california-relative-fast-slow.pt",
+      "sha256": "eb4fe0fc5d2e4d2880bb09744c1c3c15cce2aa2b8d21f2a993ae430867f98012"
+    }
+  ],
+  "conversion": "lossless tensor-to-NumPy export; inference equivalence tested separately"
+}

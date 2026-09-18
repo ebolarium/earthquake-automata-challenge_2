@@ -13,12 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from etas_challenge.prospective_seed import build_seed_records  # noqa: E402
+from etas_challenge.prospective_protocol import configured_protocol_path  # noqa: E402
 
 
-PROTOCOL_PATHS = (
-    ROOT / "configs/prospective/three-region-dry-run-v1.json",
-    ROOT / "configs/prospective/ch008-three-region-prospective-v1.json",
-)
+PROTOCOL_PATHS = (configured_protocol_path(ROOT),)
 
 
 def verify_row(cursor, query: str, parameters: tuple, expected: tuple, label: str) -> None:

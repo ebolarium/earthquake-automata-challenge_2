@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 
-DEFAULT_PUBLIC_BASE_URL = "https://etas.bboga.com"
+DEFAULT_PUBLIC_BASE_URL = "https://forecast.bboga.com"
 POLICY_PATH = Path("configs/challenge/ch008-downtime-policy.json")
 
 
@@ -20,6 +20,7 @@ def _direction(mean_igpe: float | None) -> str:
     if mean_igpe is None:
         return "not_available_no_scored_events"
     if mean_igpe > 0:
+        # Stable machine enum retained for backward-compatible consumers.
         return "ch008_higher_observed_event_density"
     if mean_igpe < 0:
         return "etas_higher_observed_event_density"
@@ -76,6 +77,11 @@ def build_evaluation(
     protocol, protocol_file, protocol_relative = _load_protocol(
         root, dashboard["protocol"]["protocol_id"]
     )
+    evidence_gate = protocol.get("forecast_family") == "causal_evidence_gate"
+    event_formula = (
+        "IG_i = ln(lambda_gated(i) / lambda_ETAS(i))"
+        if evidence_gate else "IG_i = ln(lambda_CH008(i) / lambda_ETAS(i))"
+    )
     provisional = _score_projection(dashboard.get("provisional") or {})
     final = _score_projection(dashboard.get("final") or {})
     preferred_revision = "final" if final["scored_events"] else "provisional"
@@ -112,16 +118,17 @@ def build_evaluation(
     }
 
     return {
-        "schema": "ch008-ai-evaluation-v1",
+        "schema": "evidence-gated-forecast-evaluation-v1",
         "generated_at": dashboard["generated_at"],
         "canonical_url": f"{base_url}/ai-evaluation",
         "machine_readable_url": f"{base_url}/api/evaluation.json",
         "project": {
-            "name": "CH-008 Prospective Test",
-            "objective": "Compare frozen CH-008 earthquake-rate forecasts against frozen ETAS forecasts on identical events and target windows.",
+            "name": "Evidence-Gated Forecast Test",
+            "research_question": protocol.get("research_question"),
+            "objective": "Test whether a causal evidence gate preserves ETAS-relative information gain while limiting negative transfer from a learned spatial correction.",
             "contact": "hello@bboga.com",
             "baseline": "ETAS",
-            "challenger": "CH-008",
+            "challenger": "Causal evidence-gated spatial forecast",
             "regions": [item["region_id"] for item in dashboard.get("regions", [])],
         },
         "evidence_status": {
@@ -132,16 +139,16 @@ def build_evaluation(
             "test_progress": dashboard.get("test_progress") or dashboard.get("dry_run"),
             "preferred_score_revision_for_description": preferred_revision,
             "uncertainty_status": "not_available_in_live_dashboard",
-            "warning": "A positive live IGPE is descriptive until the frozen event gate and uncertainty criteria are met; few events are not proof that CH-008 beats ETAS.",
+            "warning": "A positive live IGPE is descriptive until the frozen event gate and uncertainty criteria are met; few events are not proof that the gated forecast beats ETAS.",
         },
         "primary_metric": {
             "name": "paired information gain per earthquake (IGPE)",
-            "event_formula": "IG_i = ln(lambda_CH008(i) / lambda_ETAS(i))",
+            "event_formula": event_formula,
             "aggregate_formula": "IGPE = (1/N) * sum_i IG_i",
             "relative_factor_formula": "relative_factor = exp(IGPE)",
             "units": "natural-log units per earthquake",
-            "direction": "IGPE > 0 favors CH-008; IGPE < 0 favors ETAS.",
-            "compensator_contract": "CH-008 preserves each ETAS forecast's total expected rate, so the paired compensator gain is zero by construction.",
+            "direction": "IGPE > 0 favors the gated forecast; IGPE < 0 favors ETAS.",
+            "compensator_contract": "Every published challenger layer preserves the ETAS forecast's total expected rate, so the paired compensator gain is zero by construction.",
         },
         "live_results": {
             "latest_target_start": dashboard.get("latest_target_start"),
@@ -169,7 +176,7 @@ def build_evaluation(
             "Inspect each region; do not infer broad geographic generalization from only a pooled mean.",
             "Report missed days, invalidated regions, open incidents, and forecast freshness.",
             "Treat missed_region_days and longest_consecutive_missed_days as historical totals; current_consecutive_missed_days describes the active outage streak.",
-            "Do not call CH-008 superior without the pre-registered event gate and uncertainty analysis.",
+            "Do not call the gated forecast superior without the pre-registered event gate and uncertainty analysis.",
             "Do not interpret these rate forecasts as exact earthquake time, location, or magnitude predictions.",
         ],
         "provenance": {
@@ -186,7 +193,7 @@ def evaluation_markdown(evaluation: dict) -> str:
     status = evaluation["evidence_status"]
     result = evaluation["live_results"]["descriptive_result"]
     lines = [
-        "# CH-008 live evaluation brief",
+        "# Evidence-Gated Forecast Test: live evaluation brief",
         "",
         f"Generated at: {evaluation['generated_at']}",
         f"Protocol: {evaluation['provenance']['protocol_id']}",
@@ -226,9 +233,9 @@ def evaluation_markdown(evaluation: dict) -> str:
         "",
         "## Metric",
         "",
-        "IG_i = ln(lambda_CH008(i) / lambda_ETAS(i))",
+        "IG_i = ln(lambda_gated(i) / lambda_ETAS(i))",
         "IGPE = (1/N) * sum_i IG_i",
-        "Positive IGPE favors CH-008; negative IGPE favors ETAS.",
+        "Positive IGPE favors the gated forecast; negative IGPE favors ETAS.",
         "",
         "## Required evaluation discipline",
         "",
@@ -248,9 +255,9 @@ def evaluation_markdown(evaluation: dict) -> str:
 
 def llms_text(public_base_url: str | None = None) -> str:
     base_url = (public_base_url or DEFAULT_PUBLIC_BASE_URL).rstrip("/")
-    return f"""# CH-008 Prospective Test
+    return f"""# Evidence-Gated Forecast Test
 
-> A public, reproducibility-first comparison of frozen CH-008 earthquake-rate forecasts against ETAS in California, New Zealand, and Chile.
+> A public, reproducibility-first California comparison of ETAS, a safe spatial incumbent, a fixed learned expert, and a causal evidence-gated forecast.
 
 ## Live sources
 

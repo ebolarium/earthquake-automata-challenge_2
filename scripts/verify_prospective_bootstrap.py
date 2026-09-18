@@ -17,10 +17,11 @@ from etas_challenge.prospective_bootstrap import auxiliary_start  # noqa: E402
 from etas_challenge.prospective_bootstrap import utc_timestamp  # noqa: E402
 from etas_challenge.prospective_bootstrap import validate_contiguous_windows  # noqa: E402
 from etas_challenge.prospective_protocol import validate_protocol  # noqa: E402
+from etas_challenge.prospective_protocol import configured_protocol_path  # noqa: E402
 from etas_challenge.prospective_state import selected_bootstrap_snapshots  # noqa: E402
 
 
-PROTOCOL_PATH = ROOT / "configs/prospective/three-region-dry-run-v1.json"
+PROTOCOL_PATH = configured_protocol_path(ROOT)
 
 
 def parse_args():

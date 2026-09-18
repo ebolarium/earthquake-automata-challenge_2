@@ -1,279 +1,54 @@
 <!doctype html>
 <html lang="tr">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="CH-008 deprem tahmin modelinin ETAS baz çizgisi, yenilenme ve frailty yaklaşımı, veri kaynakları, denklemleri, kanıtları ve prospektif test protokolü.">
-    <meta name="theme-color" content="#f4f6f5">
-    <title>CH-008 Yöntem ve Bilimsel Protokol</title>
-    <link rel="icon" href="data:,">
-    <link rel="alternate" type="application/json" href="/api/evaluation.json" title="Machine-readable live evaluation">
-    <link rel="alternate" type="text/markdown" href="/ai-evaluation" title="AI evaluation brief">
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="stylesheet" href="/about.css">
-  </head>
-  <body>
-    <header class="app-header">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
-        <div>
-          <h1>CH-008 Prospective Test</h1>
-          <p>ETAS karşılaştırması · 3 bölge</p>
-        </div>
-      </div>
-      <div class="header-actions">
-        <a class="muted" href="mailto:hello@bboga.com">hello@bboga.com</a>
-        <a class="language-link" href="/en/about.html" lang="en" hreflang="en">EN</a>
-      </div>
-    </header>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Nedensel kanıt kapılı uzamsal deprem tahmininin yöntem ve sınırlamaları.">
+  <title>Yöntem · Evidence-Gated Forecast Test</title>
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/about.css">
+</head>
+<body>
+  <header class="app-header"><div class="brand"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><div><h1>Evidence-Gated Forecast Test</h1><p>Yöntem ve bilimsel sınırlar</p></div></div><a class="language-link" href="/">Dashboard</a></header>
+  <main class="method-page">
+    <article class="method-article">
+      <span class="method-kicker">ARAŞTIRMA SORUSU</span>
+      <h1>Nedensel bir kanıt kapısı, öğrenilmiş uzamsal düzeltmenin ETAS kazancını korurken negatif transferi sınırlayabilir mi?</h1>
+      <p class="method-lead">Sistem deprem olasılığına ilişkin kamusal bir uyarı ürünü değildir. Önceden yayımlanmış günlük uzamsal oranların, olaylar gerçekleştikten sonra değiştirilemez biçimde skorlandığı prospektif bir shadow testtir.</p>
 
-    <nav class="tabs" aria-label="Ana sayfalar">
-      <a class="tab tab-link" href="/">Canlı Test</a>
-      <a class="tab tab-link active" href="/about.html" aria-current="page">Yöntem</a>
-    </nav>
+      <section><h2>Dört tahmin hattı</h2>
+        <dl>
+          <div><dt>ETAS</dt><dd>Donmuş ana bilimsel benchmark</dd></div>
+          <div><dt>Güvenli incumbent</dt><dd>Yenilenme-frailty ve destekli komşuluk artığı</dd></div>
+          <div><dt>Sabit uzamsal uzman</dt><dd>Yalnız en yüksek ETAS aktivite desteğinde kütle taşır</dd></div>
+          <div><dt>Kanıt kapılı tahmin</dt><dd>BF20 aşılana kadar incumbent ile tam aynıdır</dd></div>
+        </dl>
+      </section>
 
-    <main class="method-shell">
-      <aside class="method-nav" aria-label="Sayfa içeriği">
-        <strong>İçindekiler</strong>
-        <a href="#ozet">Özet ve amaç</a>
-        <a href="#etas">ETAS baz çizgisi</a>
-        <a href="#ch008">CH-008 yaklaşımı</a>
-        <a href="#durumlar">Yenilenme ve frailty</a>
-        <a href="#parametreler">Kilitli parametreler</a>
-        <a href="#veri">Veri ve bölgeler</a>
-        <a href="#islem">Günlük işlem sırası</a>
-        <a href="#skor">Skorlama</a>
-        <a href="#kanit">Retrospektif kanıt</a>
-        <a href="#prospektif">Prospektif protokol</a>
-        <a href="#tekrar">Yeniden üretilebilirlik</a>
-        <a href="#sinirlar">Sınırlılıklar</a>
-        <a href="#kaynaklar">Kaynaklar</a>
-      </aside>
+      <section><h2>Nedensel kapı</h2>
+        <p>Tamamlanan günlerde sabit uzmanın güvenli modele göre olay log-oranları gölgede biriktirilir. Sonraki tahmin gününün ağırlığı aşağıdaki sabit kuralla hesaplanır:</p>
+        <div class="equation">w = max(0, tanh((S − log 20) / 2))</div>
+        <p>Aynı günün gözlemleri aynı günün tahminini değiştiremez. Prospektif başlangıçta <code>S=0</code> olur; retrospektif kanıt taşınmaz. BF20 burada operasyonel bir kanıt eşiğidir, koşulsuz %5 hata garantisi değildir.</p>
+      </section>
 
-      <article class="method-document">
-        <header class="document-header">
-          <span class="kicker">Yöntem · sürüm 1.0</span>
-          <h1>CH-008 Yöntem ve Bilimsel Protokol</h1>
-          <p class="lead">CH-008, güçlü bir uzay-zaman ETAS modelini değiştirmeden korur ve yalnızca doğrudan arka plan sismisite kütlesini, geçmişten nedensel olarak hesaplanan yenilenme ve yerel yatkınlık durumlarına göre yeniden dağıtır.</p>
-          <div class="document-meta">
-            <span>Son güncelleme: 16 Eylül 2026</span>
-            <span>Durum: dry run tamamlandı; prospektif başlangıç 24 Eylül 2026 UTC</span>
-            <span>İletişim: hello@bboga.com</span>
-          </div>
-        </header>
+      <section><h2>Skorlama</h2>
+        <p>Birincil izleme, her hattın ETAS’a karşı olay başına bilgi kazancıdır:</p>
+        <div class="equation">IGPE(M, ETAS) = Σ log[λ<sub>M</sub>(i)/λ<sub>ETAS</sub>(i)] / N</div>
+        <p>Güvenlik izlemesi ayrıca sabit ve kapılı uzmanların güvenli incumbent’a karşı ek IGPE’sini raporlar. Bütün katmanlar aynı günlük toplam beklenen olay sayısını korur; böylece çiftli kompansatör farkı sıfırdır.</p>
+      </section>
 
-        <section class="method-section" id="ozet">
-          <h2>Özet ve araştırma amacı</h2>
-          <p>Projenin sorusu şudur: ETAS kısa dönem artçı tetiklenmesini açıklarken, doğrudan arka plan bileşeninde eksik kalabilecek orta ve uzun dönem yerel zaman değişkenliği, yalnızca geçmiş katalog kullanılarak tahmin becerisine dönüştürülebilir mi?</p>
-          <p>CH-008 bağımsız bir deprem oluşum modeli veya ETAS’ın yerine konan yeni bir fizik yasası değildir. ETAS’ın tetiklenme bileşenini, büyüklük modelini ve günlük toplam beklenen olay sayısını koruyan kontrollü bir challenger’dır. Değiştirdiği tek nicelik, ETAS’ın doğrudan arka plan kütlesinin hücreler arasındaki dağılımıdır.</p>
-          <div class="fact-grid">
-            <div class="fact"><span>Rakip</span><strong>Uzay-zaman ETAS</strong><small>EarthquakeNPP ile hizalanmış native uygulama</small></div>
-            <div class="fact"><span>Birincil metrik</span><strong>IGPE</strong><small>Olay başına log yoğunluk oranı</small></div>
-            <div class="fact"><span>Canlı alan</span><strong>3 bölge</strong><small>Kaliforniya · Yeni Zelanda · Şili</small></div>
-          </div>
-          <div class="claim-note">
-            <strong>İddia sınırı</strong>
-            <p>Bu çalışma belirli bir depremin tam zamanını, yerini veya büyüklüğünü bildiğini; fiziksel gerilme ya da fay dayanımını doğrudan ölçtüğünü iddia etmez. Retrospektif üstünlük, prospektif ETAS üstünlüğü değildir. Tamamlanan dry run bilimsel iddiaya dahil değildir.</p>
-          </div>
+      <section><h2>Prospektif bütünlük</h2>
+        <ul>
+          <li>Tahmin artifact’i hedef gün başlamadan önce nesne depolamaya yazılır ve SHA-256 ile kilitlenir.</li>
+          <li>Backfill yasaktır; kaçırılan yayın günleri sonradan doldurulmaz.</li>
+          <li>İlk katalog skoru provisional, yedi gün sonraki snapshot finaldir.</li>
+          <li>14 günlük operasyonel dry run bilimsel iddiaya dahil değildir.</li>
+          <li>365 günlük test ancak ayrı bir dondurulmuş protokol ve commit ile başlatılabilir.</li>
+        </ul>
+      </section>
 
-          <h3>Modelin gelişim mantığı</h3>
-          <p>Önce yayımlanmış ETAS uygulaması yeniden üretildi ve bağımsız native formüllerle hizalandı. İlk challenger deneyleri, ETAS’tan kalan uzamsal artıkları ve fay-ağı durumlarını inceledi. CH-004, ETAS’ın beklediği bağımsız olay tehlikesine göre işleyen büyüklük işaretli yenilenme saatini kurdu. CH-006 frailty ekledi ancak ilk seçilen rejimde frailty’nin ek katkısı yoktu; bu sonuç negatif mekanizma bulgusu olarak korundu. CH-007 daha güçlü renewal-only rejimini doğruladı. CH-008 yalnızca iki arama üst sınırını genişletti ve hem yenilenmenin hem frailty’nin ayrı katkı verdiği, sınırda olmayan bir parametre noktası seçti.</p>
-        </section>
-
-        <section class="method-section" id="etas">
-          <h2>ETAS baz çizgisi</h2>
-          <p>Epidemic-Type Aftershock Sequence (ETAS), depremleri işaretli bir uzay-zaman nokta süreci olarak modeller. Bir konum ve zamandaki koşullu yoğunluk, doğrudan arka plan sismisitesi ile geçmiş olayların tetiklediği katkıların toplamıdır:</p>
-          <div class="equation">λ<sub>E</sub>(t, x) = μ(x) + Σ<sub>i:tᵢ&lt;t</sub> g(mᵢ, t−tᵢ, x−xᵢ)</div>
-          <p><code>μ(x)</code> doğrudan arka plan yoğunluğudur. <code>g</code>, olay büyüklüğüne bağlı üretkenliği, değiştirilmiş Omori zaman azalımını ve büyüklüğe bağlı uzamsal çekirdeği içerir. Bir olayın yalnızca kesin bir “ana şok” veya “artçı” etiketi yoktur; olay anındaki arka plan payı posterior olasılıkla ifade edilir.</p>
-          <div class="equation">p<sub>bg</sub>(i) = μ(xᵢ) / λ<sub>E</sub>(tᵢ, xᵢ)</div>
-          <p>Projede kullanılan ETAS, basit tarihsel yoğunluk haritası değildir. EarthquakeNPP <code>ComCat_25</code> deneyi ve Mizrahi–Nandan–Wiemer uzay-zaman uygulamasıyla commit düzeyinde kilitlenmiş; native koşullu yoğunluk, çekirdek integralleri, likelihood ve katalog devamı testleri referans çıktılarla hizalanmıştır.</p>
-        </section>
-
-        <section class="method-section" id="ch008">
-          <h2>CH-008 yaklaşımı</h2>
-          <p>ETAS yoğunluğunu arka plan ve tetiklenme olarak ayırırsak CH-008 yalnızca ilk parçayı değiştirir:</p>
-          <div class="equation">λ<sub>E</sub> = background + triggering
-λ<sub>CH008</sub>(t,x) = λ<sub>E</sub>(t,x) + b′<sub>t</sub>(x) − b<sub>t</sub>(x)
-Σ<sub>x</sub> b′<sub>t</sub>(x) = Σ<sub>x</sub> b<sub>t</sub>(x)</div>
-          <p>Bu kütle-koruma sözleşmesi üç önemli kontrol sağlar: ETAS’ın artçı tetiklenmesi aynen kalır, iki modelin günlük toplam beklenen olay sayısı eşit kalır ve kazanç yalnızca arka plan olaylarını daha doğru hücrelere yönlendirmekten gelebilir.</p>
-
-          <h3>Skordan arka plan dağılımına</h3>
-          <p>Yenilenme ve frailty durumları birleştirilerek hücre veya fay skoru elde edilir. ETAS arka plan olasılığı bu skorla üstel olarak eğilir, ancak log-eğim ve ETAS’tan ayrılan kütle payı sınırlandırılır:</p>
-          <div class="equation">S<sub>t</sub> = 2.926204 R<sub>t</sub> + 0.582796 F<sub>t</sub>
-p<sub>tilt</sub>(x) ∝ p₀(x) exp[min(S<sub>t</sub>(x), 4)]
-p<sub>CH008</sub> = (1−η)p₀ + ηp<sub>tilt</sub>,   η = 0.275925</div>
-          <p>Böylece arka plan kütlesinin yaklaşık %72,4’ü her koşulda doğrudan ETAS dağılımında kalır. Model yanlış veya gürültülü bir gizli durumda ETAS’tan kontrolsüz biçimde uzaklaşamaz.</p>
-        </section>
-
-        <section class="method-section" id="durumlar">
-          <h2>İki nedensel gizli durum</h2>
-          <h3>1. Büyüklük işaretli yenilenme yaşı</h3>
-          <p>Bir olayın yerel durumu ne kadar sıfırladığı hem ETAS arka plan posterioruyla hem büyüklüğüyle ağırlıklandırılır. Yoğun bir artçı kümesinde <code>p_bg</code> küçüldüğü için artçılar uzun dönem saati daha az etkiler. Büyüklük işareti:</p>
-          <div class="equation">q(m) = min(1, 10<sup>γ<sub>m</sub>(m−M<sub>full</sub>)</sup>)
-M<sub>full</sub> = 4.088951,   γ<sub>m</sub> = 0.358966</div>
-          <p>Normalize tehlike yaşı günlük olarak beklenen arka plan tehlikesiyle artar, gözlenen yumuşak ve büyüklük işaretli bağımsız olay kütlesiyle azalır:</p>
-          <div class="equation">A<sub>t+1</sub> = (A<sub>t</sub> + E<sub>t</sub>) exp(−O<sub>t</sub>)</div>
-          <p>Yerel yaş komşularla harmanlanır ve birim ortalamalı Brownian Passage Time (BPT) hazard fonksiyonuna verilir. Yalnızca belleksiz hazard’ın üzerindeki pozitif log-fazlalık kullanılır:</p>
-          <div class="equation">R<sub>t</sub> = max(log h<sub>BPT</sub>(A<sub>context</sub>), 0)</div>
-          <p>Bu saat, bilinen son büyük fay kırılmasından geçen fiziksel süre değildir; ETAS’ın beklediği doğrudan olay tehlikesi içinde tanımlanan boyutsuz istatistiksel yaştır.</p>
-
-          <h3>2. İndirimli Gamma–Poisson frailty</h3>
-          <p>Frailty, bir hücre veya fay çevresinde gözlenen yumuşak bağımsız olay kütlesinin ETAS’ın beklediği kütleye göre kalıcı bir fazlalık gösterip göstermediğini ölçer. Beklenen maruziyet <code>X</code> ve gözlenen posterior kök kütlesi <code>Y</code> geçmişi üstel olarak unutur:</p>
-          <div class="equation">δ = exp[−log(2) / half_life]
-X<sub>t+1</sub> = δX<sub>t</sub> + expected_background<sub>t</sub>
-Y<sub>t+1</sub> = δY<sub>t</sub> + observed_background_mass<sub>t</sub>
-F<sub>local</sub> = log[(a₀ + Y) / (a₀ + X)]</div>
-          <p>Negatif veya çok küçük log-frailty sıfırlanır; yerel değer komşularla sınırlı ölçüde harmanlanır. Frailty fiziksel fay dayanımı değildir. Katalog ile ETAS beklentisi arasındaki, düzenlenmiş ve boyutsuz yerel yatkınlık göstergesidir.</p>
-
-          <h3>Bölgesel ölçek normalizasyonu</h3>
-          <p>Farklı hücre alanları, katalog süreleri ve aktivite düzeyleri nedeniyle Kaliforniya dışındaki yenilenme saati yalnızca değerlendirme öncesi geçmiş kullanılarak normalize edilir:</p>
-          <div class="equation">c<sub>region</sub> = 1 / mean<sub>cell</sub>(background_mass × pre_evaluation_days)</div>
-          <p>Aynı sabit hem beklenen hem gözlenen reset kütlesine uygulanır. Hedef dönem bu ölçeği belirlemez, CH-008 parametreleri yeniden fit edilmez ve bölge başına yalnızca tek aday değerlendirilir.</p>
-        </section>
-
-        <section class="method-section" id="parametreler">
-          <h2>Kilitli CH-008 parametreleri</h2>
-          <div class="method-table-wrap">
-            <table class="method-table">
-              <thead><tr><th>Parametre</th><th>Değer</th><th>İşlev</th></tr></thead>
-              <tbody>
-                <tr><td>Tam sıfırlama büyüklüğü</td><td>4.088951</td><td>Büyüklük işaretinin doyma noktası</td></tr>
-                <tr><td>Büyüklük üssü</td><td>0.358966</td><td>Kısmi sıfırlama duyarlılığı</td></tr>
-                <tr><td>BPT aperiodisite</td><td>0.989282</td><td>Yenilenme hazard biçimi</td></tr>
-                <tr><td>Yenilenme komşuluk karışımı</td><td>0.676500</td><td>Yerel ve komşu yaş karışımı</td></tr>
-                <tr><td>Frailty önsel maruziyeti</td><td>0.673873</td><td>Gamma–Poisson düzenlemesi</td></tr>
-                <tr><td>Frailty hafıza yarı ömrü</td><td>430.582 gün</td><td>Eski kanıtın unutulması</td></tr>
-                <tr><td>Frailty komşuluk karışımı</td><td>0.089383</td><td>Yerel ve komşu yatkınlık karışımı</td></tr>
-                <tr><td>Minimum log-frailty</td><td>0.005165</td><td>Pozitif fazlalık eşiği</td></tr>
-                <tr><td>Frailty ağırlığı</td><td>0.582796</td><td>Birleşik skordaki katkı</td></tr>
-                <tr><td>Yenilenme ağırlığı</td><td>2.926204</td><td>Birleşik skordaki katkı</td></tr>
-                <tr><td>Arka plan karışım payı</td><td>0.275925</td><td>Yeniden dağıtılabilen pay</td></tr>
-                <tr><td>Azami log-eğim</td><td>4.0</td><td>Hücre eğimi güvenlik tavanı</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>Seçim, 2007 başlangıçlı puanlanmayan warm-up sonrasında 2014–2018 Kaliforniya geliştirme döneminde, 64 scrambled Sobol noktası ve tam ETAS kontrolü arasından yıllık riske duyarlı kuralla yapılmıştır. 2019 sonrası sonuçlar parametre seçiminde kullanılmamıştır. Seçilen yenilenme ağırlığı 4.0, karışım payı 0.5 üst sınırının içindedir; aday genişletilmiş sınıra yapışmamıştır.</p>
-        </section>
-
-        <section class="method-section" id="veri">
-          <h2>Veri kaynakları ve coğrafi sözleşme</h2>
-          <p>Her olay için kaynak kimliği, UTC origin time, konum, büyüklük, derinlik, kaynak güncelleme zamanı ve mümkün olduğunda ham payload hash’i korunur. Tahmin anı dışlayıcıdır: origin time’ı issue time’a eşit veya daha yeni bir olay tahmin geçmişine giremez. Katalog tamlığı her bölge için önceden tanımlı bir deney parametresidir.</p>
-          <div class="method-table-wrap">
-            <table class="method-table">
-              <thead><tr><th>Bölge</th><th>Katalog</th><th>Geometri</th><th>Eşik</th><th>Geçmiş başlangıcı</th></tr></thead>
-              <tbody>
-                <tr><td>California RELM</td><td><a href="https://earthquake.usgs.gov/fdsnws/event/1/">USGS ANSS ComCat FDSN</a></td><td>7.682 hücre, 0,1° RELM maskesi; CH-008 için UCERF3 fay ağı</td><td>M≥2,5; prospektif derinlik kesimi yok</td><td>1 Ocak 1971</td></tr>
-                <tr><td>New Zealand CSEP</td><td><a href="https://www.geonet.org.nz/data/access/FDSN">GeoNet FDSN</a></td><td>6.343 yayınlanmış 0,1° hücre; 0,5° latent komşuluk grafiği</td><td>M≥4,0; 0≤derinlik&lt;40 km</td><td>1 Ocak 1987</td></tr>
-                <tr><td>Chile subduction corridor</td><td><a href="https://earthquake.usgs.gov/fdsnws/event/1/">USGS ANSS ComCat FDSN</a></td><td>−76…−66° boylam, −56…−17° enlem; 1.560 adet 0,5° hücre</td><td>M≥4,5; 0≤derinlik&lt;100 km</td><td>1 Ocak 2000</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>Kaliforniya’da CH-008 durumu UCERF3 fay dalları üzerinde hesaplanıp yakınlık ağırlıkları ve dal consensus filtresiyle grid’e taşınır. Yeni Zelanda ve Şili’de aynı yenilenme–frailty mekanizması 0,5° latent hücre komşuluk grafiği üzerinde çalışır. Bu nedenle aynı model ailesi ve aynı parametreler kullanılır, fakat geometrik adaptörler birebir aynı değildir.</p>
-          <p>Yeni Zelanda için retrospektif fit dönemi 1987–2007, değerlendirme dönemi 2008–2025’tir. Şili için fit dönemi 2000–2014, değerlendirme dönemi 2015–2025’tir. Her iki sonuç da pozitiftir; ancak adaptör freeze’i ile sonuçlar aynı commit’te bulunduğu için doğrulayıcı bağımsızlık Git zaman sırasıyla kanıtlanamaz. Bu sonuçlar keşifsel dış-coğrafya kanıtı olarak sınıflandırılır.</p>
-        </section>
-
-        <section class="method-section" id="islem">
-          <h2>Leakage-free günlük işlem sırası</h2>
-          <div class="pipeline-steps">
-            <div><span>01</span><strong>Katalog</strong><small>00:05 UTC’de kaynaklardan yeni snapshot alınır.</small></div>
-            <div><span>02</span><strong>Durum</strong><small>Yalnızca UTC gece yarısından önceki olaylarla state ilerletilir.</small></div>
-            <div><span>03</span><strong>Tahmin</strong><small>ETAS ve CH-008 ertesi UTC günü için hesaplanır.</small></div>
-            <div><span>04</span><strong>Yayın</strong><small>00:15 UTC son tarihinden önce hash’li artefakt S3’e yazılır.</small></div>
-            <div><span>05</span><strong>Skor</strong><small>Hedef gün bittikten sonra provisional, 7 gün sonra final skor yazılır.</small></div>
-          </div>
-          <p>Her hedef pencere bir UTC günüdür. Aynı gün gözlenen olaylar o günün yayımlanmış tahminini değiştiremez; yalnızca sonraki state’e girer. Geriye dönük tahmin üretmek yasaktır. Kaliforniya ETAS grid’i 10.000 native katalog devamı ve analitik arka plan kökleriyle üretilir. Yeni Zelanda ve Şili olayları, yalnızca kesin olarak önceki olayların tetikleyebildiği native sequential conditional intensity ile skorlanır.</p>
-        </section>
-
-        <section class="method-section" id="skor">
-          <h2>Başarı metriği ve belirsizlik</h2>
-          <p>Bir hedef olay için ETAS’a karşı bilgi kazancı log yoğunluk oranıdır. Birincil metrik, tüm hedef olaylar üzerindeki ortalamadır:</p>
-          <div class="equation">IG<sub>i</sub> = log[λ<sub>CH008</sub>(i) / λ<sub>ETAS</sub>(i)]
-IGPE = (1/N) Σ<sub>i</sub> IG<sub>i</sub>
-relative factor = exp(IGPE)</div>
-          <p><code>IGPE &gt; 0</code>, gerçekleşen olaylarda CH-008’in geometrik ortalama koşullu yoğunluğunun ETAS’tan yüksek olduğunu gösterir. CH-008 toplam kütleyi, tetiklenmeyi ve büyüklük dağılımını koruduğundan ideal paired compensator farkı sıfırdır. Böylece test esas olarak koşullu mekânsal arka plan tahsisini karşılaştırır.</p>
-          <p>Retrospektif belirsizlik, deprem dizilerinin zaman bağımlılığını kısmen korumak amacıyla 10.000 tekrarlı stationary daily block bootstrap ile, ortalama 30 ve 90 günlük bloklarda hesaplanmıştır. Prospektif sistem ilk gözlenen katalogla provisional skor, katalog revizyonlarının yerleşmesi için 7 gün sonra final skor üretir. Olay olmayan günler kayıt altında tutulur fakat olay başına IGPE’ye katkı yapmaz.</p>
-        </section>
-
-        <section class="method-section" id="kanit">
-          <h2>Retrospektif kanıt</h2>
-          <div class="method-table-wrap">
-            <table class="method-table">
-              <thead><tr><th>Alan ve dönem</th><th>Olay</th><th>IGPE</th><th>Göreli faktör</th><th>30 / 90 gün %95 alt sınır</th></tr></thead>
-              <tbody>
-                <tr><td>Kaliforniya 2019–2022</td><td>5.204</td><td>+0,005213</td><td>1,005227×</td><td>+0,001982 / +0,001844</td></tr>
-                <tr><td>Kaliforniya 2023–18.08.2026</td><td>3.995</td><td>+0,007865</td><td>1,007896×</td><td>+0,005093 / +0,005369</td></tr>
-                <tr><td>Yeni Zelanda 2008–2025</td><td>2.270</td><td>+0,018561</td><td>1,018735×</td><td>+0,012006 / +0,011817</td></tr>
-                <tr><td>Şili 2015–2025</td><td>1.909</td><td>+0,009718</td><td>1,009766×</td><td>+0,006862 / +0,006321</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p>Kaliforniya 2019–2022’de tam CH-008’in renewal-only sürümüne ek frailty kazancı +0,000802 IGPE; 2023–2026’da +0,001816 IGPE’dir. Her iki dönemde 30 ve 90 günlük paired bootstrap alt sınırları pozitiftir. Bu, frailty’nin seçilen birleşik rejimde ölçülebilir katkı verdiğini destekler.</p>
-          <p>2019–2022’de düşük-ETAS olaylarda IGPE +0,022916, M4+ olaylarda +0,008580’dir. 2023–2026’da karşılıkları +0,028800 ve +0,013505’tir. Yeni Zelanda’nın altı üç-yıllık diliminin ve Şili’nin 2015–2025 arasındaki on bir yıllık skorunun tamamı pozitiftir. Bunlar model tasarımıyla uyumlu destekleyici bulgulardır; bağımsız prospektif kanıt değildir.</p>
-          <div class="claim-note">
-            <strong>Nasıl yorumlanmamalı?</strong>
-            <p>Farkların pozitif olması “depremi önceden bildik” anlamına gelmez. Sonuç, gerçekleşen olay konumlarına ETAS’tan ortalama olarak biraz daha fazla koşullu yoğunluk ayrıldığını gösterir. Bilimsel önem, birikimli kazanç, güven aralıkları, zamansal kararlılık ve değişmeden yürütülen prospektif tekrar ile birlikte değerlendirilmelidir.</p>
-          </div>
-        </section>
-
-        <section class="method-section" id="prospektif">
-          <h2>Canlı prospektif protokol</h2>
-          <p>14 günlük operasyonel dry run, <code>ch008-three-region-dry-run-v1</code> kimliğiyle tamamlandı. Ayrı ve dondurulmuş <code>ch008-three-region-prospective-v1</code> protokolü 23 Eylül 2026 issue zamanında otomatik aktive olur; ilk resmi hedef günü 24 Eylül 2026 UTC’dir. Kaliforniya, Yeni Zelanda ve Şili için aynı günlük issue clock kullanılır. Tahmin, hedef gün başlamadan önce kalıcı olarak yayımlanır; her grid, state ve manifest SHA-256 ile kimliklendirilir.</p>
-          <ul>
-            <li>Dry run skorları bilimsel prospektif üstünlük iddiasına dahil edilmez.</li>
-            <li>Prospektif protokol, model veya feature değişmeden ayrı kimlik ve artifact alanıyla aktive edilir.</li>
-            <li>Planlanan ana test 365 gün ve üç bölge birleşiminde en az 500 hedef olay kapısına sahiptir.</li>
-            <li>Parametre, feature, katalog eşiği veya geometri değişikliği yeni model/protokol kimliği gerektirir.</li>
-            <li>Tahmin backfill’i yasaktır; yalnızca hedef zamanından önce yayımlanmış artefaktlar sayılır.</li>
-            <li>Bölge sonuçları ayrıca raporlanır; birincil karar önceden tanımlı birleşik paired IGPE üzerinden verilir.</li>
-          </ul>
-          <p>Canlı dashboard aktif protokolün pipeline sağlığını, yayımlanan bölgeleri, katalog cutoff’larını, provisional/final günlük skorlarını ve takvim ilerlemesini gösterir. Her hedef günü için 7 günlük katalog kesinleşme penceresi ayrıca izlenir.</p>
-        </section>
-
-        <section class="method-section" id="tekrar">
-          <h2>Yeniden üretilebilirlik ve denetim izi</h2>
-          <p>Referans bağımlılıklar commit ile, model ve deney artefaktları SHA-256 ile kilitlidir. EarthquakeNPP commit’i <code>26d18048…</code>, ETAS uyumluluk commit’i <code>51e0c8e4…</code>, SeismoStats commit’i <code>4d617d6b…</code> olarak kaydedilmiştir. CH-008 model hash’i <code>72e030a4…</code>’tür.</p>
-          <p>Forecast grid’leri, state dosyaları ve manifestler Hetzner Object Storage üzerinde deterministik anahtarlarla saklanır; PostgreSQL katalog snapshot kimliklerini, tahmin run’larını, artefakt hash’lerini, günlük skorları ve incident kayıtlarını tutar. Ham rolling katalog cevabı korunur. Sağlık endpoint’i veritabanı ve gerekli olduğunda object storage erişimini kontrol eder.</p>
-          <p>Kaynak kod, kilitli config’ler, model dosyaları, migration’lar ve bilimsel wiki <a href="https://github.com/ebolarium/earthquake-automata-challenge">GitHub reposunda</a> açıktır. Native formüller ve operasyonel sözleşmeler otomatik testlerle doğrulanır. Başarısız deneyler de deney indeksinde tutulur; yalnızca pozitif sonuçlar seçilerek geçmiş yeniden yazılmaz.</p>
-        </section>
-
-        <section class="method-section" id="sinirlar">
-          <h2>Sınırlılıklar ve etik kullanım</h2>
-          <ol>
-            <li>Dry run ve retrospektif sonuçlar bilimsel prospektif üstünlük kanıtı değildir; bu iddia yalnızca ayrı 365 günlük protokolle değerlendirilecektir.</li>
-            <li>CH-008 şu anda esas olarak koşullu mekânsal arka plan dağılımını iyileştirir; büyüklük dağılımını veya toplam günlük oranı değiştirmez.</li>
-            <li>Kaliforniya fay-ağı, Yeni Zelanda ve Şili hücre-komşuluk geometrisi kullanır. Bu adaptör farkı açıkça raporlanmalıdır.</li>
-            <li>Kataloglar sonradan konum, büyüklük ve olay kimliği revizyonları alabilir. Bu nedenle provisional ve final skorlar ayrıdır.</li>
-            <li>İstasyon ağı ve katalog tamlığı zaman ve konuma göre değişebilir; sabit Mc seçimi bu heterojenliği tamamen çözmez.</li>
-            <li>Büyük ana şoklardan sonraki kısa dönem katalog eksikliği ETAS posteriorunu ve dolayısıyla CH-008 durumunu etkileyebilir.</li>
-            <li>Bir yıllık örneklem bazı bölgelerde tek başına yeterli güç üretmeyebilir; minimum olay kapısı bu nedenle süreye eklenmiştir.</li>
-            <li>Bu sistem kamuya yönelik deprem alarmı, erken uyarı veya bireysel güvenlik kararı aracı değildir.</li>
-          </ol>
-        </section>
-
-        <section class="method-section" id="kaynaklar">
-          <h2>Temel kaynaklar ve proje kayıtları</h2>
-          <ol class="references">
-            <li>Ogata, Y. (1988). <em>Statistical Models for Earthquake Occurrences and Residual Analysis for Point Processes.</em> <a href="https://doi.org/10.1080/01621459.1988.10478560">DOI</a></li>
-            <li>Mizrahi, L., Nandan, S. ve Wiemer, S. (2021). <em>Embracing Data Incompleteness for Better Earthquake Forecasting.</em> <a href="https://doi.org/10.1029/2021JB022379">DOI</a></li>
-            <li>Matthews, M. V., Ellsworth, W. L. ve Reasenberg, P. A. (2002). <em>A Brownian Model for Recurrent Earthquakes.</em> <a href="https://doi.org/10.1785/0120010267">DOI</a></li>
-            <li>Field, E. H. ve diğerleri (2013). <em>Uniform California Earthquake Rupture Forecast, Version 3.</em> <a href="https://pubs.usgs.gov/of/2013/1165/">USGS OFR 2013-1165</a></li>
-            <li>Politis, D. N. ve Romano, J. P. (1994). <em>The Stationary Bootstrap.</em> <a href="https://doi.org/10.1080/01621459.1994.10476870">DOI</a></li>
-            <li>Rhoades, D. A. ve diğerleri (2010). <em>New Zealand CSEP Testing Centre.</em> <a href="https://doi.org/10.1007/s00024-010-0082-4">DOI</a></li>
-            <li><a href="https://docs.cseptesting.org/getting_started/theory.html">CSEP ve pyCSEP test teorisi</a></li>
-            <li><a href="https://github.com/ss15859/EarthquakeNPP">EarthquakeNPP referans yazılımı</a> ve <a href="https://github.com/ss15859/etas">ETAS referans uygulaması</a></li>
-            <li><a href="https://github.com/ebolarium/earthquake-automata-challenge/blob/main/wiki/07-scientific-review/CH008-scientific-dossier-tr.md">CH-008 bilimsel değerlendirme dosyası</a></li>
-            <li><a href="https://github.com/ebolarium/earthquake-automata-challenge/blob/main/configs/prospective/three-region-dry-run-v1.json">Kilitli üç-bölgeli dry run protokolü</a></li>
-            <li><a href="https://github.com/ebolarium/earthquake-automata-challenge/blob/main/configs/prospective/ch008-three-region-prospective-v1.json">Kilitli 365 günlük prospektif protokol</a></li>
-          </ol>
-
-          <div class="contact-band">
-            <div><strong>Bilimsel soru, eleştiri ve iş birliği</strong><span>Yöntem veya protokol hakkında iletişime geçin.</span></div>
-            <a href="mailto:hello@bboga.com">hello@bboga.com</a>
-          </div>
-        </section>
-      </article>
-    </main>
-
-    <footer class="site-footer"><span>Earthquake Automata Challenge · CH-008</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
-  </body>
-</html>
+      <section><h2>Sınırlamalar</h2>
+        <p>Retrospektif geliştirme California, Yeni Zelanda, Şili ve Japonya C sonuçları görüldükten sonra yapılmıştır. Bu nedenle geçmiş sonuçlar bağımsız doğrulama değildir. Kapı büyük negatif transferi azaltmış olsa da Şili’de çok küçük bir incumbent-relative kayıp üretmiştir. Prospektif test tam olarak bu belirsizliği çözmek için tasarlanmıştır.</p>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer"><span>Non-operational research forecast</span><a href="/api/evaluation.json">Machine-readable evidence</a></footer>
+</body></html>

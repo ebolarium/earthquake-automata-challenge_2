@@ -22,9 +22,10 @@ from etas_challenge.prospective_catalog import CatalogResultLimitError  # noqa: 
 from etas_challenge.prospective_catalog import fetch_snapshot  # noqa: E402
 from etas_challenge.prospective_persistence import existing_window, persist_snapshot  # noqa: E402
 from etas_challenge.prospective_protocol import validate_protocol  # noqa: E402
+from etas_challenge.prospective_protocol import configured_protocol_path  # noqa: E402
 
 
-PROTOCOL_PATH = ROOT / "configs/prospective/three-region-dry-run-v1.json"
+PROTOCOL_PATH = configured_protocol_path(ROOT)
 MINIMUM_SPLIT = timedelta(hours=1)
 
 

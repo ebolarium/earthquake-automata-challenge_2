@@ -20,12 +20,13 @@ from etas_challenge.masked_grid import masked_grid  # noqa: E402
 from etas_challenge.object_storage import ObjectStorageConfig  # noqa: E402
 from etas_challenge.prospective_bootstrap import utc_timestamp  # noqa: E402
 from etas_challenge.prospective_protocol import validate_protocol  # noqa: E402
+from etas_challenge.prospective_protocol import configured_protocol_path  # noqa: E402
 from etas_challenge.prospective_state import model_state_id  # noqa: E402
 from etas_challenge.prospective_state import validate_state_artifact  # noqa: E402
 from etas_challenge.training_matrix import sha256_file  # noqa: E402
 
 
-PROTOCOL_PATH = ROOT / "configs/prospective/three-region-dry-run-v1.json"
+PROTOCOL_PATH = configured_protocol_path(ROOT)
 CH008_MODEL_PATH = ROOT / "models/ch008-boundary-sensitivity-v1.json"
 STATE_BUILDER_PATH = ROOT / "scripts/build_prospective_initial_states.py"
 REPLAY_MODULE_PATH = ROOT / "src/etas_challenge/prospective_replay.py"

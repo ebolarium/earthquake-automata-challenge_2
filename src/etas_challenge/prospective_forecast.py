@@ -17,6 +17,13 @@ from etas_challenge.prospective_daily import regional_background_forecast
 from etas_challenge.prospective_etas import california_daily_etas_grid
 from etas_challenge.prospective_replay import CH008State
 from etas_challenge.training_matrix import write_deterministic_npz
+from etas_challenge.evidence_gate_forecast import NumpyFastSlowEnsemble
+from etas_challenge.evidence_gate_forecast import SeismicFrame
+from etas_challenge.evidence_gate_forecast import assemble_forecast
+from etas_challenge.evidence_gate_forecast import build_context
+from etas_challenge.evidence_gate_forecast import project_locations
+from etas_challenge.evidence_gate_forecast import reallocate_rates
+from etas_challenge.evidence_gate_forecast import supported_neighbor_safe_rates
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,5 +224,123 @@ def build_california_artifacts(
             "simulations": baseline.simulations,
             "sampled_nonbackground_events": baseline.sampled_nonbackground_events,
             "sampled_nonbackground_inside": baseline.sampled_nonbackground_inside,
+        },
+    )
+
+
+def build_california_evidence_gate_artifacts(
+    source,
+    *,
+    forecast_start: datetime,
+    context,
+    etas_model: dict,
+    parent_model: dict,
+    ch008_model: dict,
+    simulation_reference: dict,
+    simulations: int,
+    random_seed: int,
+    evidence_model: dict,
+    ensemble: NumpyFastSlowEnsemble,
+) -> ForecastArtifactPair:
+    """Build ETAS, safe, fixed, and gated grids from one causal state."""
+
+    pair = build_california_artifacts(
+        source,
+        forecast_start=forecast_start,
+        context=context,
+        etas_model=etas_model,
+        parent_model=parent_model,
+        ch008_model=ch008_model,
+        simulation_reference=simulation_reference,
+        simulations=simulations,
+        random_seed=random_seed,
+    )
+    etas_rates = pair.baseline_arrays["daily_rates"]
+    safe_config = evidence_model["safe_expert"]
+    causal_boundary = forecast_start - timedelta(days=1)
+    issue_day = int(
+        np.datetime64(causal_boundary.astimezone(timezone.utc).replace(tzinfo=None), "D")
+        .astype(np.int64)
+    )
+    safe_rates = supported_neighbor_safe_rates(
+        etas_rates,
+        pair.baseline_arrays["direct_background_rates"],
+        pair.challenger_arrays["ch008_score"],
+        np.asarray(source["background_root_values"]),
+        np.asarray(source["background_root_days"]),
+        issue_day,
+        context.grid,
+        background_mixture_fraction=ch008_model["parameters"]["background_mixture_fraction"],
+        acceleration_support_power=safe_config["acceleration_support_power"],
+        acceleration_additive_mix=safe_config["acceleration_additive_mix"],
+        residual_scale=safe_config["residual_scale"],
+    )
+    frame_config = evidence_model["neural_expert"]["frame"]
+    frame = SeismicFrame(
+        center_latitude=frame_config["center_latitude"],
+        center_longitude=frame_config["center_longitude"],
+        along_vector=tuple(frame_config["along_vector"]),
+        cross_vector=tuple(frame_config["cross_vector"]),
+        along_scale_km=frame_config["along_scale_km"],
+        cross_scale_km=frame_config["cross_scale_km"],
+        median_gap_seconds=frame_config["median_gap_seconds"],
+    )
+    history_context = build_context(
+        frame,
+        np.asarray(source["origin_time_ns"]),
+        np.asarray(source["latitudes"]),
+        np.asarray(source["longitudes"]),
+        np.asarray(source["depths_km"]),
+        np.asarray(source["magnitudes"]),
+        context_events=int(evidence_model["neural_expert"]["context_events"]),
+        completeness_magnitude=frame_config["completeness_magnitude"],
+        maximum_depth_km=frame_config["maximum_depth_km"],
+    )
+    centers = (context.grid.origin_units.astype(np.float64) + 0.5) / context.grid.units_per_degree
+    candidates = project_locations(frame, centers[:, 1], centers[:, 0])
+    neural_rates = reallocate_rates(
+        etas_rates,
+        ensemble.logits(
+            history_context,
+            candidates,
+            batch_size=int(evidence_model["neural_expert"]["candidate_batch_size"]),
+        ),
+    )
+    gate = assemble_forecast(
+        etas_rates,
+        safe_rates,
+        neural_rates,
+        float(np.asarray(source["gate_log_bayes_factor"])),
+    )
+    expected = float(np.sum(etas_rates, dtype=np.float64))
+    for name, values in (
+        ("safe", gate.safe_rates), ("fixed", gate.fixed_rates),
+        ("gated", gate.gated_rates), ("neural", neural_rates),
+    ):
+        if not np.isclose(np.sum(values, dtype=np.float64), expected, rtol=1e-12, atol=1e-10):
+            raise ValueError(f"{name} forecast changed expected event count")
+    return ForecastArtifactPair(
+        pair.baseline_arrays,
+        {
+            **{key: value for key, value in pair.challenger_arrays.items() if key != "daily_rates"},
+            "daily_rates": gate.gated_rates,
+            "safe_daily_rates": gate.safe_rates,
+            "fixed_daily_rates": gate.fixed_rates,
+            "neural_daily_rates": neural_rates,
+            "active_support": gate.active_support.astype(np.uint8),
+            "gate_weight": np.asarray(gate.gate_weight),
+            "gate_log_bayes_factor": np.asarray(gate.log_bayes_factor),
+        },
+        {
+            **pair.summary,
+            "model_family": "causal_evidence_gated_spatial_forecast",
+            "baseline_expected_count": expected,
+            "safe_expected_count": float(np.sum(gate.safe_rates)),
+            "fixed_expected_count": float(np.sum(gate.fixed_rates)),
+            "gated_expected_count": float(np.sum(gate.gated_rates)),
+            "gate_weight": gate.gate_weight,
+            "gate_log_bayes_factor": gate.log_bayes_factor,
+            "gate_qualified": bool(gate.gate_weight > 0.0),
+            "active_support_cells": int(np.count_nonzero(gate.active_support)),
         },
     )

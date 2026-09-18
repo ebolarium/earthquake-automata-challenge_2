@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f4f6f5">
-    <meta name="description" content="Live CH-008 versus ETAS prospective earthquake forecast evaluation in California, New Zealand, and Chile.">
-    <title>CH-008 Prospective Test</title>
+    <meta name="description" content="Live prospective comparison of ETAS, the safe incumbent, a fixed spatial expert, and a causal evidence-gated forecast in California.">
+    <title>Evidence-Gated Forecast Test</title>
     <link rel="icon" href="data:,">
     <link rel="alternate" type="application/json" href="/api/evaluation.json" title="Machine-readable live evaluation">
     <link rel="alternate" type="text/markdown" href="/ai-evaluation" title="AI evaluation brief">
@@ -16,8 +16,8 @@
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
         <div>
-          <h1>CH-008 Prospective Test</h1>
-          <p>ETAS comparison · 3 regions</p>
+          <h1>Evidence-Gated Forecast Test</h1>
+          <p>ETAS comparison · California RELM</p>
         </div>
       </div>
       <div class="header-actions">
@@ -54,14 +54,15 @@
 
         <div class="metric-strip" aria-label="Prospective test summary">
           <article class="metric"><span>Latest target day</span><strong id="metric-target">—</strong><small>UTC</small></article>
-          <article class="metric"><span>Published regions</span><strong id="metric-regions">—</strong><small>3 regions</small></article>
-          <article class="metric accent"><span>Provisional IGPE</span><strong id="metric-igpe">—</strong><small id="metric-factor">relative to ETAS</small></article>
+          <article class="metric accent"><span>Gated / ETAS</span><strong id="metric-igpe">—</strong><small id="metric-factor">Provisional IGPE</small></article>
+          <article class="metric"><span>Safe / ETAS</span><strong id="metric-safe-igpe">—</strong><small>Provisional IGPE</small></article>
+          <article class="metric"><span>Gate weight</span><strong id="metric-gate-weight">—</strong><small id="metric-gate-evidence">BF20 hurdle</small></article>
           <article class="metric"><span>Scored events</span><strong id="metric-events">—</strong><small id="metric-days">0 days</small></article>
         </div>
 
         <div class="toolbar">
-          <div class="segmented" id="region-filter" role="group" aria-label="Region filter"></div>
-          <div class="legend"><span class="legend-ch008"></span>CH-008 gain <span class="legend-etas"></span>ETAS gain</div>
+          <div class="segmented" id="comparison-filter" role="group" aria-label="Comparison filter"></div>
+          <div class="legend"><span class="legend-ch008"></span>Information gain <span class="legend-etas"></span>Loss</div>
         </div>
 
         <div class="overview-grid">
@@ -88,14 +89,14 @@
           <div class="section-heading"><div><h2 id="regions-title">Region status</h2><p>Latest publication and catalog snapshot</p></div></div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Region</th><th>Forecast</th><th>Target</th><th>Catalog</th><th>Provisional</th><th>Final</th></tr></thead>
+              <thead><tr><th>Region</th><th>Forecast</th><th>Target</th><th>Catalog</th><th>Gated / ETAS</th><th>Gated / Safe</th></tr></thead>
               <tbody id="regions-body"></tbody>
             </table>
           </div>
         </section>
 
         <section class="newsletter-band" aria-labelledby="newsletter-title">
-          <div class="newsletter-copy"><span>DAILY STATUS REPORT</span><h2 id="newsletter-title">In your inbox every morning at 06:00 TRT</h2><p>A concise summary of publication health, incidents, and ETAS–CH-008 scores.</p></div>
+          <div class="newsletter-copy"><span>DAILY STATUS REPORT</span><h2 id="newsletter-title">In your inbox every morning at 06:00 TRT</h2><p>A concise summary of publication health, incidents, and ETAS–Gate scores.</p></div>
           <form class="newsletter-form" id="newsletter-form">
             <label for="newsletter-email">Email address</label>
             <div><input id="newsletter-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required><button type="submit">Subscribe</button></div>
@@ -107,13 +108,15 @@
       </section>
 
       <section class="view" id="maps-view">
-        <div class="view-heading"><span>PUBLISHED FORECAST ARTIFACTS</span><h2>Daily spatial forecasts</h2><p>ETAS and CH-008 cell values published before the target day began.</p></div>
+        <div class="view-heading"><span>PUBLISHED FORECAST ARTIFACTS</span><h2>Daily spatial forecasts</h2><p>Four hash-locked rate layers published before the target day begins.</p></div>
         <div class="map-toolbar">
           <div class="control-block"><span>Region</span><div class="segmented map-regions" id="map-region-control" role="group" aria-label="Map region"></div></div>
           <div class="control-block"><span>Layer</span><div class="segmented" id="map-layer-control" role="group" aria-label="Forecast layer">
             <button class="segment" type="button" data-map-layer="etas">ETAS</button>
-            <button class="segment" type="button" data-map-layer="ch008">CH-008</button>
-            <button class="segment active" type="button" data-map-layer="log_ratio">Difference</button>
+            <button class="segment" type="button" data-map-layer="safe">Safe</button>
+            <button class="segment" type="button" data-map-layer="fixed">Fixed expert</button>
+            <button class="segment" type="button" data-map-layer="gated">Gated</button>
+            <button class="segment active" type="button" data-map-layer="gated_etas_log_ratio">Gated−ETAS</button>
           </div></div>
         </div>
         <div class="forecast-map-layout">
@@ -124,7 +127,7 @@
               <div class="map-empty" id="forecast-map-empty">Loading map</div>
               <div class="chart-tooltip" id="forecast-map-tooltip" role="status"></div>
             </div>
-            <div class="map-scale"><span id="map-scale-low">ETAS higher</span><i id="map-scale-ramp"></i><span id="map-scale-high">CH-008 higher</span></div>
+            <div class="map-scale"><span id="map-scale-low">ETAS higher</span><i id="map-scale-ramp"></i><span id="map-scale-high">Gated higher</span></div>
           </section>
           <aside class="map-facts">
             <dl>
@@ -132,7 +135,8 @@
               <div><dt>Published</dt><dd id="map-fact-published">—</dd></div>
               <div><dt>Cells</dt><dd id="map-fact-cells">—</dd></div>
               <div><dt>ETAS layer total</dt><dd id="map-fact-etas">—</dd></div>
-              <div><dt>CH-008 layer total</dt><dd id="map-fact-ch008">—</dd></div>
+              <div><dt>Safe layer total</dt><dd id="map-fact-safe">—</dd></div>
+              <div><dt>Gated layer total</dt><dd id="map-fact-ch008">—</dd></div>
             </dl>
             <p id="map-semantics-note">—</p>
           </aside>
@@ -140,10 +144,10 @@
       </section>
 
       <section class="view" id="scores-view">
-        <div class="view-heading"><span>EVENT-WISE LOG RATE RATIO</span><h2>Daily ETAS–CH-008 scores</h2><p>Provisional catalog observations and final revisions frozen seven days later.</p></div>
+        <div class="view-heading"><span>EVENT-WISE LOG RATE RATIO</span><h2>Daily multi-model scores</h2><p>ETAS-relative IGPE and incumbent-relative safety are reported together.</p></div>
         <div class="table-wrap score-table-wrap">
           <table>
-            <thead><tr><th>Target day</th><th>Region</th><th>Revision</th><th>Events</th><th>Total gain</th><th>IGPE</th><th>Result</th></tr></thead>
+            <thead><tr><th>Target day</th><th>Revision</th><th>Events</th><th>Safe / ETAS</th><th>Fixed / ETAS</th><th>Gated / ETAS</th><th>Gated / Safe</th></tr></thead>
             <tbody id="scores-body"></tbody>
           </table>
           <div class="table-empty" id="scores-empty">No completed target day yet.</div>
@@ -151,7 +155,7 @@
       </section>
 
       <section class="view" id="protocol-view">
-        <div class="view-heading"><span>LOCKED BEFORE TEST</span><h2>Test protocol</h2><p>The model and catalog contract remain unchanged throughout the run.</p></div>
+        <div class="view-heading"><span>LOCKED BEFORE TEST</span><h2>Test protocol</h2><p>ETAS, safe, fixed-expert, and BF20 gate contracts remain unchanged.</p></div>
         <div class="protocol-grid">
           <section><h3>Study</h3><dl id="protocol-facts"></dl></section>
           <section><h3>Scoring</h3><dl>
@@ -165,7 +169,7 @@
       </section>
     </main>
 
-    <footer class="site-footer"><span>CH-008 Prospective Test</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
+    <footer class="site-footer"><span>Evidence-Gated Forecast Test</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
     <div class="error-banner" id="error-banner" role="alert"></div>
     <script src="/app-en.js" defer></script>
   </body>

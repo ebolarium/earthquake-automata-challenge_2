@@ -12,6 +12,7 @@ from etas_challenge.prospective_protocol import validate_protocol
 
 ETAS_SOURCE_COMMIT = "51e0c8e419197df3f88349035a682b90fbd4dfb5"
 CH008_SOURCE_COMMIT = "15f762ba6087b6639830555490f073c456e48bf0"
+EVIDENCE_GATE_SOURCE_COMMIT = "377c54d9d02b020d6355f6aa11e7863e5c26e84a"
 
 
 def canonical_sha256(value) -> str:
@@ -36,8 +37,19 @@ def build_seed_records(protocol_path: Path, root: Path) -> dict:
                 "parameters": json.loads(model_path.read_text(encoding="utf-8")),
             }
         )
-    models.extend(
-        [
+    if protocol.get("forecast_family") == "causal_evidence_gate":
+        models.append(
+            {
+                "model_id": protocol["challenger"]["model_id"],
+                "role": "challenger",
+                "source_commit": EVIDENCE_GATE_SOURCE_COMMIT,
+                "model_sha256": sha256_file(challenger_path),
+                "runtime_sha256": protocol["challenger"]["runtime_sha256"],
+                "parameters": challenger_parameters,
+            }
+        )
+    else:
+        models.extend([
             {
                 "model_id": protocol["challenger"]["california_model_id"],
                 "role": "challenger",
@@ -54,8 +66,7 @@ def build_seed_records(protocol_path: Path, root: Path) -> dict:
                 "runtime_sha256": protocol["challenger"]["normalized_runtime_sha256"],
                 "parameters": challenger_parameters,
             },
-        ]
-    )
+        ])
     regions = []
     for region in protocol["regions"]:
         regions.append(

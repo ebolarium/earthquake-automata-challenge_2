@@ -18,7 +18,8 @@ class RenewalQuiescenceTest(unittest.TestCase):
         expected = expected_reset_weight_gr(beta, 2.5, 5.5, 0.5)
         x = np.linspace(0.0, 20.0, 1_000_001)
         mark = np.minimum(1.0, np.exp(0.5 * np.log(10.0) * (x - 3.0)))
-        numerical = np.trapz(beta * np.exp(-beta * x) * mark, x)
+        integrate = getattr(np, "trapezoid", None) or np.trapz
+        numerical = integrate(beta * np.exp(-beta * x) * mark, x)
         self.assertAlmostEqual(expected, numerical, places=9)
 
     def test_hazard_age_uses_soft_posterior_reset(self):

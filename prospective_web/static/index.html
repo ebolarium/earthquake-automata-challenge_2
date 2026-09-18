@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f4f6f5">
-    <meta name="description" content="Kaliforniya, Yeni Zelanda ve Şili'de canlı CH-008 ve ETAS prospektif deprem tahmini karşılaştırması.">
-    <title>CH-008 Prospective Test</title>
+    <meta name="description" content="California için ETAS, güvenli incumbent, sabit uzamsal uzman ve nedensel kanıt kapısının canlı prospektif karşılaştırması.">
+    <title>Evidence-Gated Earthquake Forecast Test</title>
     <link rel="icon" href="data:,">
     <link rel="alternate" type="application/json" href="/api/evaluation.json" title="Machine-readable live evaluation">
     <link rel="alternate" type="text/markdown" href="/ai-evaluation" title="AI evaluation brief">
@@ -16,8 +16,8 @@
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
         <div>
-          <h1>CH-008 Prospective Test</h1>
-          <p>ETAS karşılaştırması · 3 bölge</p>
+          <h1>Evidence-Gated Forecast Test</h1>
+          <p>ETAS karşılaştırması · California RELM</p>
         </div>
       </div>
       <div class="header-actions">
@@ -54,20 +54,21 @@
 
         <div class="metric-strip" aria-label="Prospektif test özeti">
           <article class="metric"><span>Son hedef günü</span><strong id="metric-target">—</strong><small>UTC</small></article>
-          <article class="metric"><span>Yayınlanan bölgeler</span><strong id="metric-regions">—</strong><small>3 bölge</small></article>
-          <article class="metric accent"><span>Provisional IGPE</span><strong id="metric-igpe">—</strong><small id="metric-factor">ETAS'a göre</small></article>
+          <article class="metric accent"><span>Kapılı model / ETAS</span><strong id="metric-igpe">—</strong><small id="metric-factor">Provisional IGPE</small></article>
+          <article class="metric"><span>Güvenli model / ETAS</span><strong id="metric-safe-igpe">—</strong><small>Provisional IGPE</small></article>
+          <article class="metric"><span>Kapı ağırlığı</span><strong id="metric-gate-weight">—</strong><small id="metric-gate-evidence">BF20 eşiği</small></article>
           <article class="metric"><span>Skorlanan olay</span><strong id="metric-events">—</strong><small id="metric-days">0 gün</small></article>
         </div>
 
         <div class="toolbar">
-          <div class="segmented" id="region-filter" role="group" aria-label="Bölge filtresi"></div>
-          <div class="legend"><span class="legend-ch008"></span>CH-008 kazancı <span class="legend-etas"></span>ETAS kazancı</div>
+          <div class="segmented" id="comparison-filter" role="group" aria-label="Karşılaştırma filtresi"></div>
+          <div class="legend"><span class="legend-ch008"></span>Bilgi kazancı <span class="legend-etas"></span>Kayıp</div>
         </div>
 
         <div class="overview-grid">
           <section class="chart-panel" aria-labelledby="chart-title">
             <div class="section-heading">
-              <div><h2 id="chart-title">Günlük bilgi kazancı</h2><p id="chart-subtitle">Provisional skorlar</p></div>
+              <div><h2 id="chart-title">Günlük olay başına bilgi kazancı</h2><p id="chart-subtitle">Kapılı model / ETAS · provisional</p></div>
               <strong id="chart-total">—</strong>
             </div>
             <div class="chart-stage" id="chart-stage">
@@ -88,14 +89,14 @@
           <div class="section-heading"><div><h2 id="regions-title">Bölge durumu</h2><p>Son yayın ve katalog snapshot’ı</p></div></div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Bölge</th><th>Tahmin</th><th>Hedef</th><th>Katalog</th><th>Provisional</th><th>Final</th></tr></thead>
+              <thead><tr><th>Bölge</th><th>Tahmin</th><th>Hedef</th><th>Katalog</th><th>Kapılı / ETAS</th><th>Kapılı / Güvenli</th></tr></thead>
               <tbody id="regions-body"></tbody>
             </table>
           </div>
         </section>
 
         <section class="newsletter-band" aria-labelledby="newsletter-title">
-          <div class="newsletter-copy"><span>GÜNLÜK DURUM RAPORU</span><h2 id="newsletter-title">Her sabah 06:00’da e-postanda</h2><p>Yayın durumu, incident’lar ve ETAS–CH-008 skorlarının kısa özeti.</p></div>
+          <div class="newsletter-copy"><span>GÜNLÜK DURUM RAPORU</span><h2 id="newsletter-title">Her sabah 06:00’da e-postanda</h2><p>Yayın sağlığı, ETAS IGPE, güvenlik deltası ve kanıt kapısının kısa özeti.</p></div>
           <form class="newsletter-form" id="newsletter-form">
             <label for="newsletter-email">E-posta adresi</label>
             <div><input id="newsletter-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required><button type="submit">Kaydol</button></div>
@@ -107,13 +108,15 @@
       </section>
 
       <section class="view" id="maps-view">
-        <div class="view-heading"><span>PUBLISHED FORECAST ARTIFACTS</span><h2>Günlük mekânsal tahminler</h2><p>Hedef günü başlamadan önce yayımlanan ETAS ve CH-008 hücre değerleri.</p></div>
+        <div class="view-heading"><span>PUBLISHED FORECAST ARTIFACTS</span><h2>Günlük mekânsal tahminler</h2><p>Hedef günü başlamadan önce hash’lenerek yayımlanan dört tahmin katmanı.</p></div>
         <div class="map-toolbar">
           <div class="control-block"><span>Bölge</span><div class="segmented map-regions" id="map-region-control" role="group" aria-label="Harita bölgesi"></div></div>
           <div class="control-block"><span>Katman</span><div class="segmented" id="map-layer-control" role="group" aria-label="Tahmin katmanı">
             <button class="segment" type="button" data-map-layer="etas">ETAS</button>
-            <button class="segment" type="button" data-map-layer="ch008">CH-008</button>
-            <button class="segment active" type="button" data-map-layer="log_ratio">Fark</button>
+            <button class="segment" type="button" data-map-layer="safe">Güvenli</button>
+            <button class="segment" type="button" data-map-layer="fixed">Sabit uzman</button>
+            <button class="segment" type="button" data-map-layer="gated">Kapılı</button>
+            <button class="segment active" type="button" data-map-layer="gated_etas_log_ratio">Kapılı−ETAS</button>
           </div></div>
         </div>
         <div class="forecast-map-layout">
@@ -124,7 +127,7 @@
               <div class="map-empty" id="forecast-map-empty">Harita yükleniyor</div>
               <div class="chart-tooltip" id="forecast-map-tooltip" role="status"></div>
             </div>
-            <div class="map-scale"><span id="map-scale-low">ETAS yüksek</span><i id="map-scale-ramp"></i><span id="map-scale-high">CH-008 yüksek</span></div>
+            <div class="map-scale"><span id="map-scale-low">ETAS yüksek</span><i id="map-scale-ramp"></i><span id="map-scale-high">Kapılı yüksek</span></div>
           </section>
           <aside class="map-facts">
             <dl>
@@ -132,7 +135,8 @@
               <div><dt>Yayın zamanı</dt><dd id="map-fact-published">—</dd></div>
               <div><dt>Hücre</dt><dd id="map-fact-cells">—</dd></div>
               <div><dt>ETAS katman toplamı</dt><dd id="map-fact-etas">—</dd></div>
-              <div><dt>CH-008 katman toplamı</dt><dd id="map-fact-ch008">—</dd></div>
+              <div><dt>Güvenli katman toplamı</dt><dd id="map-fact-safe">—</dd></div>
+              <div><dt>Kapılı katman toplamı</dt><dd id="map-fact-ch008">—</dd></div>
             </dl>
             <p id="map-semantics-note">—</p>
           </aside>
@@ -140,10 +144,10 @@
       </section>
 
       <section class="view" id="scores-view">
-        <div class="view-heading"><span>EVENT-WISE LOG RATE RATIO</span><h2>Günlük ETAS–CH-008 skorları</h2><p>Provisional ve yedi gün sonra dondurulan final katalog sürümleri.</p></div>
+        <div class="view-heading"><span>EVENT-WISE LOG RATE RATIO</span><h2>Günlük çok-modelli skorlar</h2><p>ETAS-relative IGPE ve incumbent-relative güvenlik katkısı birlikte raporlanır.</p></div>
         <div class="table-wrap score-table-wrap">
           <table>
-            <thead><tr><th>Hedef günü</th><th>Bölge</th><th>Sürüm</th><th>Olay</th><th>Toplam kazanç</th><th>IGPE</th><th>Sonuç</th></tr></thead>
+            <thead><tr><th>Hedef günü</th><th>Sürüm</th><th>Olay</th><th>Güvenli / ETAS</th><th>Sabit / ETAS</th><th>Kapılı / ETAS</th><th>Kapılı / Güvenli</th></tr></thead>
             <tbody id="scores-body"></tbody>
           </table>
           <div class="table-empty" id="scores-empty">Tamamlanmış hedef günü henüz yok.</div>
@@ -151,7 +155,7 @@
       </section>
 
       <section class="view" id="protocol-view">
-        <div class="view-heading"><span>TEST ÖNCESİ KİLİTLENDİ</span><h2>Test protokolü</h2><p>Model ve katalog sözleşmesi çalışma boyunca değiştirilmez.</p></div>
+        <div class="view-heading"><span>TEST ÖNCESİ KİLİTLENDİ</span><h2>Test protokolü</h2><p>ETAS, güvenli model, sabit uzman ve BF20 kapısı çalışma boyunca değiştirilmez.</p></div>
         <div class="protocol-grid">
           <section><h3>Çalışma</h3><dl id="protocol-facts"></dl></section>
           <section><h3>Skorlama</h3><dl>
@@ -165,7 +169,7 @@
       </section>
     </main>
 
-    <footer class="site-footer"><span>CH-008 Prospective Test</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
+    <footer class="site-footer"><span>Evidence-Gated Earthquake Forecast Test</span><a href="mailto:hello@bboga.com">hello@bboga.com</a></footer>
 
     <div class="error-banner" id="error-banner" role="alert"></div>
     <script src="/app.js" defer></script>

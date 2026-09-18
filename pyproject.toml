@@ -3,9 +3,9 @@ requires = ["setuptools>=72", "wheel>=0.45"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "earthquake-automata-challenge"
+name = "evidence-gated-earthquake-forecast"
 version = "0.1.0"
-description = "Reproducible ETAS baseline and earthquake forecast challenge"
+description = "Prospective evidence-gated spatial earthquake forecast test against ETAS"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11,<3.12"
@@ -47,8 +47,8 @@ paper = [
 ]
 
 [project.urls]
-Source = "https://github.com/ebolarium/earthquake-automata-challenge"
-Documentation = "https://github.com/ebolarium/earthquake-automata-challenge/tree/main/wiki"
+Source = "https://github.com/ebolarium/earthquake-automata-challenge_2"
+Documentation = "https://github.com/ebolarium/earthquake-automata-challenge_2/tree/main/wiki"
 
 [tool.setuptools.packages.find]
 where = ["src"]

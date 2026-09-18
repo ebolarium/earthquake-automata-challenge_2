@@ -1,8 +1,8 @@
 "use strict";
 
 const state = {
-  dashboard: null, region: "all", points: [], mapRegion: "california-relm",
-  mapLayer: "log_ratio", mapData: null, mapCache: new Map(), mapPoints: [],
+  dashboard: null, comparison: "gated_vs_etas", points: [], mapRegion: "california-relm",
+  mapLayer: "gated_etas_log_ratio", mapData: null, mapCache: new Map(), mapPoints: [],
 };
 const canvas = document.getElementById("score-chart");
 const context = canvas.getContext("2d");
@@ -124,7 +124,7 @@ function renderMapRegionControl() {
 function renderForecastMap() {
   const data = state.mapData;
   if (!data) return;
-  const layerNames = { etas: "ETAS", ch008: "CH-008", log_ratio: "Fark" };
+  const layerNames = { etas: "ETAS", safe: "Güvenli", fixed: "Sabit uzman", gated: "Kapılı", gated_etas_log_ratio: "Kapılı − ETAS" };
   setText("forecast-map-title", data.region_name);
   setText("forecast-map-window", `${formatDateTime(data.target_start)} → ${formatDateTime(data.target_end)} UTC`);
   setText("forecast-map-layer", layerNames[state.mapLayer]);
@@ -132,14 +132,16 @@ function renderForecastMap() {
   setText("map-fact-published", `${formatDateTime(data.published_at)} UTC`);
   setText("map-fact-cells", formatInteger(data.summary.cells));
   setText("map-fact-etas", formatMapTotal(data.summary.etas_total));
-  setText("map-fact-ch008", formatMapTotal(data.summary.ch008_total));
+  setText("map-fact-safe", formatMapTotal(data.summary.safe_total));
+  setText("map-fact-ch008", formatMapTotal(data.summary.gated_total ?? data.summary.ch008_total));
   setText("map-semantics-note", data.semantics === "one_day_expected_count_per_cell"
     ? "Kaliforniya katmanları hücre başına bir günlük toplam beklenen olay sayısını gösterir."
     : "Bu bölgedeki katmanlar, sıralı ETAS değerlendirmesinde kullanılan hedef öncesi doğrudan arka plan kütlesini gösterir.");
+  const difference = state.mapLayer.includes("log_ratio");
   const scale = document.querySelector(".map-scale");
-  scale.classList.toggle("sequential", state.mapLayer !== "log_ratio");
-  setText("map-scale-low", state.mapLayer === "log_ratio" ? "ETAS yüksek" : "Düşük");
-  setText("map-scale-high", state.mapLayer === "log_ratio" ? "CH-008 yüksek" : "Yüksek");
+  scale.classList.toggle("sequential", !difference);
+  setText("map-scale-low", difference ? "ETAS yüksek" : "Düşük");
+  setText("map-scale-high", difference ? "Kapılı yüksek" : "Yüksek");
   resizeForecastMap();
 }
 
@@ -189,10 +191,10 @@ function drawForecastMap(width, height) {
     const cellWidth = spacing * cosine * scale + 0.45;
     const cellHeight = spacing * scale + 0.45;
     const value = values[index];
-    const normalized = state.mapLayer === "log_ratio"
+    const normalized = state.mapLayer.includes("log_ratio")
       ? Math.max(-1, Math.min(1, value / differenceExtent))
       : high === low ? 0.5 : Math.max(0, Math.min(1, (Math.log10(Math.max(value, Number.MIN_VALUE)) - low) / (high - low)));
-    mapContext.fillStyle = state.mapLayer === "log_ratio" ? differenceColor(normalized) : rateColor(normalized);
+    mapContext.fillStyle = state.mapLayer.includes("log_ratio") ? differenceColor(normalized) : rateColor(normalized);
     mapContext.fillRect(x, y, cellWidth, cellHeight);
     state.mapPoints.push({ x, y, width: cellWidth, height: cellHeight, longitude, latitude, value });
   });
@@ -204,7 +206,7 @@ function handleMapPointer(event) {
   const y = event.clientY - rect.top;
   const point = state.mapPoints.find((item) => x >= item.x && x <= item.x + item.width && y >= item.y && y <= item.y + item.height);
   if (!point) { mapTooltip.classList.remove("visible"); return; }
-  const value = state.mapLayer === "log_ratio" ? formatSigned(point.value, 4) : formatMapTotal(point.value);
+  const value = state.mapLayer.includes("log_ratio") ? formatSigned(point.value, 4) : formatMapTotal(point.value);
   mapTooltip.innerHTML = `<strong>${point.latitude.toFixed(2)}°, ${point.longitude.toFixed(2)}°</strong><br>${value}`;
   mapTooltip.style.left = `${Math.min(x + 10, rect.width - 125)}px`;
   mapTooltip.style.top = `${Math.max(y - 42, 8)}px`;
@@ -254,38 +256,42 @@ function renderStatus() {
 }
 
 function selectedScores(revision = "provisional") {
-  return (state.dashboard?.daily_scores || []).filter((score) =>
-    score.revision === revision && (state.region === "all" || score.region_id === state.region)
-  );
+  return (state.dashboard?.daily_scores || []).filter((score) => score.revision === revision);
 }
 
 function aggregate(scores) {
-  const events = scores.reduce((sum, score) => sum + score.event_count, 0);
-  const gain = scores.reduce((sum, score) => sum + score.total_gain, 0);
+  const comparisons = scores.map((score) => score.multi_model?.comparisons?.[state.comparison]).filter(Boolean);
+  const events = comparisons.reduce((sum, score) => sum + score.events, 0);
+  const gain = comparisons.reduce((sum, score) => sum + score.total_gain, 0);
   const mean = events ? gain / events : null;
   return { days: scores.length, events, gain, mean };
 }
 
 function renderFilters() {
-  const labels = [["all", "Tümü"], ...state.dashboard.regions.map((region) => [region.region_id, shortRegion(region.name)])];
-  const control = document.getElementById("region-filter");
+  const labels = [["gated_vs_etas", "Kapılı / ETAS"], ["safe_vs_etas", "Güvenli / ETAS"], ["fixed_vs_etas", "Sabit / ETAS"], ["gated_vs_safe", "Kapılı / Güvenli"]];
+  const control = document.getElementById("comparison-filter");
   control.replaceChildren();
   labels.forEach(([id, label]) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `segment${state.region === id ? " active" : ""}`;
+    button.className = `segment${state.comparison === id ? " active" : ""}`;
     button.textContent = label;
-    button.addEventListener("click", () => { state.region = id; renderAll(); });
+    button.addEventListener("click", () => { state.comparison = id; renderAll(); });
     control.appendChild(button);
   });
 }
 
 function renderMetrics() {
   const provisional = aggregate(selectedScores());
+  const models = state.dashboard.model_comparisons?.provisional;
+  const safe = models?.comparisons?.safe_vs_etas;
+  const gate = models?.latest_gate;
   setText("metric-target", state.dashboard.latest_target_start ? formatDate(state.dashboard.latest_target_start) : "Bekleniyor");
-  setText("metric-regions", `${state.dashboard.published_regions}/3`);
   setText("metric-igpe", formatGain(provisional.mean));
-  setText("metric-factor", provisional.mean === null ? "ETAS'a göre" : `${formatFactor(Math.exp(provisional.mean))} göreli oran`);
+  setText("metric-factor", comparisonLabel(state.comparison));
+  setText("metric-safe-igpe", formatGain(safe?.mean_igpe));
+  setText("metric-gate-weight", gate ? `${(gate.weight * 100).toFixed(1)}%` : "—");
+  setText("metric-gate-evidence", gate ? `log BF ${formatSigned(gate.log_bayes_factor, 3)}` : "BF20 eşiği");
   setText("metric-events", formatInteger(provisional.events));
   const progress = state.dashboard.test_progress || state.dashboard.dry_run;
   setText("metric-days", `${progress.successful_scored_days} başarılı · ${progress.calendar_days_elapsed}/${progress.planned_days} takvim`);
@@ -305,7 +311,7 @@ function renderChart() {
   document.getElementById("chart-empty").classList.toggle("hidden", scores.length > 0);
   const total = aggregate(scores);
   setText("chart-total", total.mean === null ? "—" : `${formatSigned(total.mean)} IGPE`);
-  setText("chart-subtitle", `${state.region === "all" ? "Tüm bölgeler" : regionName(state.region)} · provisional`);
+  setText("chart-subtitle", `${comparisonLabel(state.comparison)} · provisional`);
   resizeCanvas();
 }
 
@@ -330,7 +336,7 @@ function drawChart(width, height) {
   const padding = { left: 48, right: 18, top: 22, bottom: 35 };
   const innerWidth = width - padding.left - padding.right;
   const innerHeight = height - padding.top - padding.bottom;
-  const values = scores.map((score) => score.mean_igpe || 0);
+  const values = scores.map((score) => score.multi_model?.comparisons?.[state.comparison]?.mean_igpe || 0);
   const extent = Math.max(0.002, ...values.map(Math.abs)) * 1.2;
   const y = (value) => padding.top + (extent - value) / (extent * 2) * innerHeight;
   const zero = y(0);
@@ -343,7 +349,7 @@ function drawChart(width, height) {
   const slot = innerWidth / scores.length;
   const barWidth = Math.max(4, Math.min(28, slot * 0.58));
   scores.forEach((score, index) => {
-    const value = score.mean_igpe || 0;
+    const value = score.multi_model?.comparisons?.[state.comparison]?.mean_igpe || 0;
     const x = padding.left + slot * index + slot / 2;
     const top = Math.min(zero, y(value));
     const barHeight = Math.max(1, Math.abs(y(value) - zero));
@@ -367,8 +373,8 @@ function renderRegions() {
       cell(status(forecast, region.operations)),
       cell(forecast ? formatDate(forecast.target_start) : "—"),
       cell(primary(region.latest_catalog ? formatDateTime(region.latest_catalog.cutoff) : "—", region.latest_catalog ? `${region.latest_catalog.window_events} olay / 30 gün` : "Snapshot yok")),
-      cell(scoreValue(region.provisional)),
-      cell(scoreValue(region.final)),
+      cell(comparisonValue(region, "gated_vs_etas")),
+      cell(comparisonValue(region, "gated_vs_safe")),
     );
     body.appendChild(row);
   });
@@ -380,10 +386,13 @@ function renderScores() {
   body.replaceChildren();
   document.getElementById("scores-empty").classList.toggle("hidden", scores.length > 0);
   scores.forEach((score) => {
+    const comparisons = score.multi_model?.comparisons || {};
     const row = document.createElement("tr");
     row.append(
-      cell(formatDate(score.target_date)), cell(regionName(score.region_id)), cell(score.revision === "final" ? "Final" : "Provisional"),
-      cell(formatInteger(score.event_count)), cell(formatSigned(score.total_gain)), cell(formatGain(score.mean_igpe)), cell(resultLabel(score.mean_igpe)),
+      cell(formatDate(score.target_date)), cell(score.revision === "final" ? "Final" : "Provisional"),
+      cell(formatInteger(score.event_count)), cell(formatGain(comparisons.safe_vs_etas?.mean_igpe)),
+      cell(formatGain(comparisons.fixed_vs_etas?.mean_igpe)), cell(formatGain(comparisons.gated_vs_etas?.mean_igpe)),
+      cell(formatGain(comparisons.gated_vs_safe?.mean_igpe)),
     );
     body.appendChild(row);
   });
@@ -394,7 +403,7 @@ function renderProtocol() {
   const facts = document.getElementById("protocol-facts");
   facts.replaceChildren();
   const mode = protocol.mode === "prospective" ? "365 günlük prospektif test" : "14 günlük dry run";
-  [["Kimlik", protocol.protocol_id], ["Mod", mode], ["Prospektif iddia", protocol.counts_toward_prospective_claim ? "Dahil" : "Dahil değil"], ["Bölge", "3"], ["Final gecikmesi", `${protocol.settled_score_delay_days} gün`]].forEach(([label, value]) => {
+  [["Kimlik", protocol.protocol_id], ["Mod", mode], ["Prospektif iddia", protocol.counts_toward_prospective_claim ? "Dahil" : "Dahil değil"], ["Bölge", String(state.dashboard.regions.length)], ["Final gecikmesi", `${protocol.settled_score_delay_days} gün`]].forEach(([label, value]) => {
     const div = document.createElement("div"); const dt = document.createElement("dt"); const dd = document.createElement("dd"); dt.textContent = label; dd.textContent = value; div.append(dt, dd); facts.appendChild(div);
   });
   const regions = document.getElementById("protocol-regions");
@@ -413,7 +422,8 @@ function handleChartPointer(event) {
   const x = event.clientX - rect.left;
   const point = state.points.find((item) => Math.abs(item.x - x) <= Math.max(9, item.width));
   if (!point) { tooltip.classList.remove("visible"); return; }
-  tooltip.innerHTML = `<strong>${formatDate(point.score.target_date)}</strong><br>${regionName(point.score.region_id)} · ${formatGain(point.score.mean_igpe)} IGPE<br>${point.score.event_count} olay`;
+  const value = point.score.multi_model?.comparisons?.[state.comparison]?.mean_igpe;
+  tooltip.innerHTML = `<strong>${formatDate(point.score.target_date)}</strong><br>${comparisonLabel(state.comparison)} · ${formatGain(value)} IGPE<br>${point.score.event_count} olay`;
   tooltip.style.left = `${Math.min(point.x + 10, rect.width - 150)}px`;
   tooltip.style.top = `${Math.max(point.y - 50, 8)}px`;
   tooltip.classList.add("visible");
@@ -422,7 +432,8 @@ function handleChartPointer(event) {
 function primary(titleText, detailText) { const wrap = document.createElement("div"); wrap.className = "primary-cell"; const title = document.createElement("strong"); const detail = document.createElement("small"); title.textContent = titleText; detail.textContent = detailText; wrap.append(title, detail); return wrap; }
 function status(forecast, operations) { const span = document.createElement("span"); const invalid = operations && !operations.primary_eligible; span.className = `status-pill${forecast && forecast.status === "published" && !invalid ? "" : " waiting"}`; span.textContent = invalid ? "Birincil kapsam dışı" : forecast && forecast.status === "published" ? "Yayınlandı" : "Bekleniyor"; return span; }
 function scoreValue(summary) { if (!summary.days) return "Bekleniyor"; const span = document.createElement("span"); span.className = gainClass(summary.mean_igpe); span.textContent = `${formatGain(summary.mean_igpe)} · ${summary.events} olay`; return span; }
-function resultLabel(value) { if (value === null) return "Olay yok"; const span = document.createElement("span"); span.className = gainClass(value); span.textContent = value > 0 ? "CH-008" : value < 0 ? "ETAS" : "Eşit"; return span; }
+function comparisonValue(region, name) { const value = region.model_comparisons?.provisional?.comparisons?.[name]; if (!value?.events) return "Bekleniyor"; const span = document.createElement("span"); span.className = gainClass(value.mean_igpe); span.textContent = `${formatGain(value.mean_igpe)} · ${value.events} olay`; return span; }
+function comparisonLabel(name) { return ({ gated_vs_etas: "Kapılı model / ETAS", safe_vs_etas: "Güvenli model / ETAS", fixed_vs_etas: "Sabit uzman / ETAS", gated_vs_safe: "Kapılı model / güvenli" })[name] || name; }
 function cell(content) { const td = document.createElement("td"); if (content instanceof Node) td.appendChild(content); else td.textContent = content; return td; }
 function gainClass(value) { return value > 0 ? "gain-positive" : value < 0 ? "gain-negative" : "gain-neutral"; }
 function regionName(id) { return state.dashboard.regions.find((region) => region.region_id === id)?.name || id; }

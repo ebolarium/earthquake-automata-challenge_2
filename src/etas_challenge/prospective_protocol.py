@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 EXPECTED_REGIONS = {"california-relm", "new-zealand-csep", "chile-subduction"}
-DEFAULT_PROTOCOL_PATH = "configs/prospective/three-region-dry-run-v1.json"
+DEFAULT_PROTOCOL_PATH = "configs/prospective/evidence-gate-california-dry-run-v1.json"
 
 
 def configured_protocol_path(root: Path) -> Path:
@@ -63,24 +63,40 @@ def validate_protocol(path: Path, root: Path) -> dict:
 
     regions = protocol.get("regions", [])
     region_ids = [region.get("region_id") for region in regions]
-    if len(region_ids) != len(set(region_ids)) or set(region_ids) != EXPECTED_REGIONS:
+    expected_regions = (
+        {"california-relm"}
+        if protocol.get("forecast_family") == "causal_evidence_gate"
+        else EXPECTED_REGIONS
+    )
+    if len(region_ids) != len(set(region_ids)) or set(region_ids) != expected_regions:
+        if protocol.get("forecast_family") == "causal_evidence_gate":
+            raise ValueError("evidence-gate protocol must contain California only")
         raise ValueError("protocol must contain exactly the three admitted regions")
 
-    locked_files = [
-        (protocol["challenger"]["model_path"], protocol["challenger"]["model_sha256"]),
-        (
-            protocol["challenger"]["california_runtime_path"],
-            protocol["challenger"]["california_runtime_sha256"],
-        ),
-        (
-            protocol["challenger"]["normalized_runtime_path"],
-            protocol["challenger"]["normalized_runtime_sha256"],
-        ),
-        (
-            protocol["baseline_runtime"]["path"],
-            protocol["baseline_runtime"]["sha256"],
-        ),
-    ]
+    if protocol.get("forecast_family") == "causal_evidence_gate":
+        locked_files = [
+            (protocol["challenger"]["model_path"], protocol["challenger"]["model_sha256"]),
+            (protocol["challenger"]["runtime_path"], protocol["challenger"]["runtime_sha256"]),
+            (
+                protocol["challenger"]["forecast_builder_path"],
+                protocol["challenger"]["forecast_builder_sha256"],
+            ),
+            (protocol["challenger"]["weights_path"], protocol["challenger"]["weights_sha256"]),
+            (protocol["baseline_runtime"]["path"], protocol["baseline_runtime"]["sha256"]),
+        ]
+    else:
+        locked_files = [
+            (protocol["challenger"]["model_path"], protocol["challenger"]["model_sha256"]),
+            (
+                protocol["challenger"]["california_runtime_path"],
+                protocol["challenger"]["california_runtime_sha256"],
+            ),
+            (
+                protocol["challenger"]["normalized_runtime_path"],
+                protocol["challenger"]["normalized_runtime_sha256"],
+            ),
+            (protocol["baseline_runtime"]["path"], protocol["baseline_runtime"]["sha256"]),
+        ]
     for region in regions:
         locked_files.append((region["etas_model_path"], region["etas_model_sha256"]))
         geometry = region["geometry"]

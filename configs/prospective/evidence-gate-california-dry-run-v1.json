@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "protocol_id": "evidence-gate-california-dry-run-v1",
+  "status": "ready_not_started",
+  "mode": "dry_run",
+  "forecast_family": "causal_evidence_gate",
+  "counts_toward_prospective_claim": false,
+  "duration_days": 14,
+  "minimum_events": 1,
+  "research_question": "Can a causal evidence gate preserve ETAS-relative information gain while limiting negative transfer from a learned spatial correction?",
+  "issue_contract": {
+    "frequency": "daily",
+    "target_window": "next_utc_day",
+    "history_boundary": "strictly_before_issue_time",
+    "persist_before_target_start": true,
+    "backfill_permitted": false,
+    "schedule": "daily operational dry run before a separately committed prospective activation"
+  },
+  "catalog_revision_contract": {
+    "raw_response_preserved": true,
+    "first_observed_score": "provisional",
+    "settled_score_delay_days": 7,
+    "settled_score_label": "final"
+  },
+  "artifact_contract": {
+    "s3_prefix": "prospective/v1/dry-run",
+    "lane": "dry-run",
+    "forecast_format": "compressed_npz",
+    "manifest_format": "json",
+    "sha256_required": true
+  },
+  "challenger": {
+    "model_id": "spatial-evidence-gate-v1",
+    "model_path": "models/evidence-gate/spatial-evidence-gate-v1.json",
+    "model_sha256": "0c664df52ae82287a409d0231f9b3f6b35383cc0d7c032014763012a78c402fd",
+    "runtime_path": "src/etas_challenge/evidence_gate_forecast.py",
+    "runtime_sha256": "ff3e42667fc6e100e98ad03524155281b142222dc0063199a01cb608a0255fdd",
+    "forecast_builder_path": "src/etas_challenge/prospective_forecast.py",
+    "forecast_builder_sha256": "f6c7dedebbb767082d766acd8bef736f445de9b0582d9ad1430ea47539aff9b0",
+    "weights_path": "models/evidence-gate/california-ch014-ensemble-v1.npz",
+    "weights_sha256": "6f5a8905f8d26bbb32c1a9c97f818f42ab26b03cf5fc9f0528e8c63d8af263de"
+  },
+  "baseline_runtime": {
+    "path": "src/etas_challenge/etas_native.py",
+    "sha256": "a833974874e05dcd4f24d914b405da37ee83f99e744cf5c503ec73d886812161"
+  },
+  "regions": [
+    {
+      "region_id": "california-relm",
+      "name": "California RELM",
+      "catalog_source": "USGS ANSS ComCat FDSN",
+      "catalog_endpoint": "https://earthquake.usgs.gov/fdsnws/event/1/query",
+      "geometry": {
+        "type": "grid_mask",
+        "path": "data/grids/california-relm-v1.json",
+        "sha256": "91ddb0f09244c2173cd5fe9fab4405a6582175ee933ba271d63639c8872cdce9",
+        "cells": 7682,
+        "spacing_degrees": 0.1
+      },
+      "minimum_magnitude": 2.5,
+      "minimum_depth_km": null,
+      "maximum_depth_km_exclusive": null,
+      "baseline_model_id": "etas-california-comcat25-v1",
+      "challenger_model_id": "spatial-evidence-gate-v1",
+      "etas_model_path": "models/etas/california-comcat25-v1.json",
+      "etas_model_sha256": "a87aa34b7b716f4c1b78ca62eef5c0add9a14e722a1081be899b63ef39d08b22",
+      "spatial_support_geometry": "ucerf3_fault_network",
+      "renewal_exposure_scale": 1.0
+    }
+  ],
+  "dry_run_acceptance": {
+    "all_forecasts_published_before_target": true,
+    "all_four_rate_layers_positive_and_count_preserving": true,
+    "gate_initializes_at_zero_historical_evidence": true,
+    "provisional_and_final_scores_reproducible": true,
+    "no_scientific_score_used_for_refit_or_parameter_selection": true
+  },
+  "promotion_boundary": {
+    "dry_run_scores_are_scientifically_discarded": true,
+    "prospective_activation_requires_new_manifest_and_commit": true,
+    "prospective_duration_days": 365,
+    "model_or_feature_change_requires_new_protocol": true
+  }
+}

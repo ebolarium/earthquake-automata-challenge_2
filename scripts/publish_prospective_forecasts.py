@@ -24,6 +24,7 @@ from etas_challenge.object_storage import object_key, put_verified_bytes  # noqa
 from etas_challenge.prospective_bootstrap import utc_timestamp  # noqa: E402
 from etas_challenge.prospective_context import load_california_runtime_context  # noqa: E402
 from etas_challenge.prospective_forecast import build_california_artifacts  # noqa: E402
+from etas_challenge.prospective_forecast import build_california_evidence_gate_artifacts  # noqa: E402
 from etas_challenge.prospective_forecast import build_regional_artifacts  # noqa: E402
 from etas_challenge.prospective_forecast import canonical_json_bytes  # noqa: E402
 from etas_challenge.prospective_forecast import deterministic_npz_bytes  # noqa: E402
@@ -34,6 +35,7 @@ from etas_challenge.prospective_protocol import artifact_lane  # noqa: E402
 from etas_challenge.prospective_protocol import configured_protocol_path  # noqa: E402
 from etas_challenge.prospective_protocol import validate_protocol  # noqa: E402
 from etas_challenge.training_matrix import sha256_file  # noqa: E402
+from etas_challenge.evidence_gate_forecast import NumpyFastSlowEnsemble  # noqa: E402
 
 
 PROTOCOL_PATH = configured_protocol_path(ROOT)
@@ -41,6 +43,7 @@ RUNTIME_PATH = ROOT / "configs/prospective/daily-runtime-v1.json"
 PARENT_MODEL_PATH = ROOT / "models/ch004-marked-renewal-v1.json"
 CH008_MODEL_PATH = ROOT / "models/ch008-boundary-sensitivity-v1.json"
 FORECAST_MODULE_PATH = ROOT / "src/etas_challenge/prospective_forecast.py"
+EVIDENCE_MODEL_PATH = ROOT / "models/evidence-gate/spatial-evidence-gate-v1.json"
 
 
 def parse_args():
@@ -265,6 +268,14 @@ def main() -> int:
 
     parent = json.loads(PARENT_MODEL_PATH.read_text(encoding="utf-8"))
     ch008 = json.loads(CH008_MODEL_PATH.read_text(encoding="utf-8"))
+    evidence_model = None
+    ensemble = None
+    if protocol.get("forecast_family") == "causal_evidence_gate":
+        evidence_model = json.loads(EVIDENCE_MODEL_PATH.read_text(encoding="utf-8"))
+        weights_path = ROOT / evidence_model["neural_expert"]["weights_path"]
+        if sha256_file(weights_path) != evidence_model["neural_expert"]["weights_sha256"]:
+            raise ValueError("frozen evidence-gate neural weights changed")
+        ensemble = NumpyFastSlowEnsemble.load(weights_path)
     simulation_reference = json.loads(
         (ROOT / runtime["california_etas_grid"]["simulation_reference"]).read_text(
             encoding="utf-8"
@@ -309,7 +320,24 @@ def main() -> int:
                     raise ValueError("forecast state ETAS model hash disagrees")
                 if str(np.asarray(source["ch008_model_sha256"]).item()) != sha256_file(CH008_MODEL_PATH):
                     raise ValueError("forecast state CH-008 model hash disagrees")
-                if region_id == "california-relm":
+                if (
+                    region_id == "california-relm"
+                    and protocol.get("forecast_family") == "causal_evidence_gate"
+                ):
+                    pair = build_california_evidence_gate_artifacts(
+                        source,
+                        forecast_start=target_start,
+                        context=load_california_runtime_context(ROOT),
+                        etas_model=etas_model,
+                        parent_model=parent,
+                        ch008_model=ch008,
+                        simulation_reference=simulation_reference,
+                        simulations=runtime["california_etas_grid"]["simulations"],
+                        random_seed=runtime["california_etas_grid"]["random_seed"],
+                        evidence_model=evidence_model,
+                        ensemble=ensemble,
+                    )
+                elif region_id == "california-relm":
                     pair = build_california_artifacts(
                         source,
                         forecast_start=target_start,

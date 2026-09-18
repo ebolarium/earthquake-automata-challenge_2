@@ -219,6 +219,7 @@ def compute_score(connection, client, storage, region: dict, run: dict, snapshot
     artifacts = forecast_grids(connection, client, storage, run["run_id"], region)
     baseline_record = artifacts[region["baseline_model_id"]]
     challenger_record = artifacts[region["challenger_model_id"]]
+    auxiliary = None
     with np.load(io.BytesIO(baseline_record["payload"]), allow_pickle=False) as baseline:
         with np.load(io.BytesIO(challenger_record["payload"]), allow_pickle=False) as challenger:
             if region["region_id"] == "california-relm":
@@ -227,6 +228,40 @@ def compute_score(connection, client, storage, region: dict, run: dict, snapshot
                 score = score_california_grid(
                     cells, baseline["daily_rates"], challenger["daily_rates"]
                 )
+                if "safe_daily_rates" in challenger.files:
+                    rates = {
+                        "etas": np.asarray(baseline["daily_rates"])[cells],
+                        "safe": np.asarray(challenger["safe_daily_rates"])[cells],
+                        "fixed": np.asarray(challenger["fixed_daily_rates"])[cells],
+                        "gated": np.asarray(challenger["daily_rates"])[cells],
+                    }
+                    def comparison(numerator: str, denominator: str) -> dict:
+                        gains = np.log(rates[numerator] / rates[denominator])
+                        return {
+                            "events": int(len(gains)),
+                            "total_gain": float(np.sum(gains)),
+                            "mean_igpe": None if not len(gains) else float(np.mean(gains)),
+                            "event_gains": gains.tolist(),
+                        }
+                    auxiliary = {
+                        "model_event_rates": {
+                            name: values.tolist() for name, values in rates.items()
+                        },
+                        "comparisons": {
+                            "safe_vs_etas": comparison("safe", "etas"),
+                            "fixed_vs_etas": comparison("fixed", "etas"),
+                            "gated_vs_etas": comparison("gated", "etas"),
+                            "fixed_vs_safe": comparison("fixed", "safe"),
+                            "gated_vs_safe": comparison("gated", "safe"),
+                        },
+                        "gate_weight": float(np.asarray(challenger["gate_weight"])),
+                        "gate_log_bayes_factor": float(
+                            np.asarray(challenger["gate_log_bayes_factor"])
+                        ),
+                        "active_support_cells": int(
+                            np.count_nonzero(challenger["active_support"])
+                        ),
+                    }
             else:
                 grid = regional_geometry(region)
                 cells = grid.cells(events["latitudes"], events["longitudes"])
@@ -281,6 +316,8 @@ def compute_score(connection, client, storage, region: dict, run: dict, snapshot
         "event_log_likelihood_gains": score.event_gains.tolist(),
         **summary,
     }
+    if auxiliary is not None:
+        metrics["multi_model"] = auxiliary
     return summary, metrics
 
 

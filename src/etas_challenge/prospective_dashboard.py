@@ -24,6 +24,37 @@ def _score_summary(rows: list[dict], revision: str) -> dict:
     }
 
 
+def _multi_model_summary(rows: list[dict], revision: str) -> dict:
+    selected = [
+        row for row in rows
+        if row["revision"] == revision and row.get("multi_model") is not None
+    ]
+    names = (
+        "safe_vs_etas", "fixed_vs_etas", "gated_vs_etas",
+        "fixed_vs_safe", "gated_vs_safe",
+    )
+    comparisons = {}
+    for name in names:
+        events = sum(row["multi_model"]["comparisons"][name]["events"] for row in selected)
+        total = sum(row["multi_model"]["comparisons"][name]["total_gain"] for row in selected)
+        comparisons[name] = {
+            "events": events,
+            "total_gain": total,
+            "mean_igpe": None if not events else total / events,
+            "relative_factor": None if not events else math.exp(total / events),
+        }
+    latest = max(selected, key=lambda row: row["target_date"], default=None)
+    return {
+        "comparisons": comparisons,
+        "latest_gate": None if latest is None else {
+            "target_date": latest["target_date"],
+            "weight": latest["multi_model"]["gate_weight"],
+            "log_bayes_factor": latest["multi_model"]["gate_log_bayes_factor"],
+            "active_support_cells": latest["multi_model"]["active_support_cells"],
+        },
+    }
+
+
 def _dry_run_progress(
     rows: list[dict],
     region_ids: list[str],
@@ -176,7 +207,7 @@ def build_dashboard(connection, protocol_id: str, now=None) -> dict:
     score_rows = connection.execute(
         """
         SELECT region_id, target_date, score_revision, event_count,
-               total_log_likelihood_gain, mean_igpe, computed_at
+               total_log_likelihood_gain, mean_igpe, computed_at, metrics
         FROM prospective.daily_scores
         WHERE protocol_id = %s
         ORDER BY target_date, region_id, score_revision
@@ -192,6 +223,9 @@ def build_dashboard(connection, protocol_id: str, now=None) -> dict:
             "total_gain": float(row[4]),
             "mean_igpe": None if row[5] is None else float(row[5]),
             "computed_at": _iso(row[6]),
+            "multi_model": (
+                row[7].get("multi_model") if len(row) > 7 and row[7] else None
+            ),
         }
         for row in score_rows
     ]
@@ -291,6 +325,10 @@ def build_dashboard(connection, protocol_id: str, now=None) -> dict:
             "latest_catalog": latest_catalogs.get(region_id),
             "provisional": _score_summary(region_scores, "provisional"),
             "final": _score_summary(region_scores, "final"),
+            "model_comparisons": {
+                "provisional": _multi_model_summary(region_scores, "provisional"),
+                "final": _multi_model_summary(region_scores, "final"),
+            },
             "operations": operational.get(region_id, {
                 "primary_eligible": True,
                 "missed_region_days": 0,
@@ -354,7 +392,7 @@ def build_dashboard(connection, protocol_id: str, now=None) -> dict:
         ],
     )
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "generated_at": generated_at.isoformat(),
         "pipeline_status": pipeline_status,
         "protocol": {
@@ -381,6 +419,10 @@ def build_dashboard(connection, protocol_id: str, now=None) -> dict:
         "post_window_score_rows_excluded": len(scores) - len(scoped_scores),
         "provisional": _score_summary(scoped_scores, "provisional"),
         "final": _score_summary(scoped_scores, "final"),
+        "model_comparisons": {
+            "provisional": _multi_model_summary(scoped_scores, "provisional"),
+            "final": _multi_model_summary(scoped_scores, "final"),
+        },
         "regions": regions,
         "daily_scores": scoped_scores,
     }

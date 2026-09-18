@@ -69,25 +69,50 @@ def _forecast_cells(baseline_payload: bytes, challenger_payload: bytes) -> dict:
         else:
             raise ValueError("unsupported forecast map geometry")
 
+        extra_layers = {}
+        if value_key == "daily_rates" and "safe_daily_rates" in challenger.files:
+            extra_layers = {
+                "safe": _finite_values(challenger["safe_daily_rates"], "safe"),
+                "fixed": _finite_values(challenger["fixed_daily_rates"], "fixed"),
+                "gated": ch008,
+            }
+            if any(values.shape != etas.shape for values in extra_layers.values()):
+                raise ValueError("multi-model forecast map layers disagree")
+
     if origins.shape != (len(etas), 2) or np.any(~np.isfinite(origins)):
         raise ValueError("forecast map geometry disagrees")
+
     ratio = np.zeros_like(etas)
     valid = (etas > 0) & (ch008 > 0)
     ratio[valid] = np.log(ch008[valid] / etas[valid])
+    layers = {"etas": etas.tolist(), "ch008": ch008.tolist(), "log_ratio": ratio.tolist()}
+    summary = {
+        "cells": len(etas),
+        "etas_total": float(np.sum(etas, dtype=np.float64)),
+        "ch008_total": float(np.sum(ch008, dtype=np.float64)),
+    }
+    if extra_layers:
+        layers.update({name: values.tolist() for name, values in extra_layers.items()})
+        for name, numerator, denominator in (
+            ("safe_etas_log_ratio", extra_layers["safe"], etas),
+            ("fixed_safe_log_ratio", extra_layers["fixed"], extra_layers["safe"]),
+            ("gated_etas_log_ratio", extra_layers["gated"], etas),
+        ):
+            values = np.zeros_like(etas)
+            valid = (numerator > 0) & (denominator > 0)
+            values[valid] = np.log(numerator[valid] / denominator[valid])
+            layers[name] = values.tolist()
+        summary.update({
+            "safe_total": float(np.sum(extra_layers["safe"])),
+            "fixed_total": float(np.sum(extra_layers["fixed"])),
+            "gated_total": float(np.sum(extra_layers["gated"])),
+        })
     return {
         "semantics": semantics,
         "spacing_degrees": spacing,
         "origins": np.round(origins, 6).tolist(),
-        "layers": {
-            "etas": etas.tolist(),
-            "ch008": ch008.tolist(),
-            "log_ratio": ratio.tolist(),
-        },
-        "summary": {
-            "cells": len(etas),
-            "etas_total": float(np.sum(etas, dtype=np.float64)),
-            "ch008_total": float(np.sum(ch008, dtype=np.float64)),
-        },
+        "layers": layers,
+        "summary": summary,
     }
 
 

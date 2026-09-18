@@ -5,12 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 
 
-DRY_RUN_PROTOCOL_ID = "ch008-three-region-dry-run-v1"
-PROSPECTIVE_PROTOCOL_ID = "ch008-three-region-prospective-v1"
-DRY_RUN_PROTOCOL_PATH = Path("configs/prospective/three-region-dry-run-v1.json")
-PROSPECTIVE_PROTOCOL_PATH = Path(
-    "configs/prospective/ch008-three-region-prospective-v1.json"
-)
+DRY_RUN_PROTOCOL_ID = "evidence-gate-california-dry-run-v1"
+PROSPECTIVE_PROTOCOL_ID = "evidence-gate-california-prospective-v1"
+DRY_RUN_PROTOCOL_PATH = Path("configs/prospective/evidence-gate-california-dry-run-v1.json")
+PROSPECTIVE_PROTOCOL_PATH = Path("configs/prospective/evidence-gate-california-prospective-v1.json")
+LEGACY_PROTOCOL_PATHS = {
+    "ch008-three-region-dry-run-v1": Path("configs/prospective/three-region-dry-run-v1.json"),
+    "ch008-three-region-prospective-v1": Path("configs/prospective/ch008-three-region-prospective-v1.json"),
+}
 
 
 def protocol_path(protocol_id: str) -> Path:
@@ -18,6 +20,8 @@ def protocol_path(protocol_id: str) -> Path:
         return DRY_RUN_PROTOCOL_PATH
     if protocol_id == PROSPECTIVE_PROTOCOL_ID:
         return PROSPECTIVE_PROTOCOL_PATH
+    if protocol_id in LEGACY_PROTOCOL_PATHS:
+        return LEGACY_PROTOCOL_PATHS[protocol_id]
     raise ValueError(f"unknown runtime protocol: {protocol_id}")
 
 

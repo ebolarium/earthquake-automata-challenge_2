@@ -1,79 +1,34 @@
-# Earthquake Automata Challenge
+# Evidence-Gated Earthquake Forecast Test
 
-[![Test](https://github.com/ebolarium/earthquake-automata-challenge/actions/workflows/test.yml/badge.svg)](https://github.com/ebolarium/earthquake-automata-challenge/actions/workflows/test.yml)
-[![DOI](https://zenodo.org/badge/1339609487.svg)](https://doi.org/10.5281/zenodo.22800613)
+[![Test](https://github.com/ebolarium/earthquake-automata-challenge_2/actions/workflows/test.yml/badge.svg)](https://github.com/ebolarium/earthquake-automata-challenge_2/actions/workflows/test.yml)
 
-An independent, reproducibility-first project for implementing and testing a
-published earthquake forecasting baseline before developing challengers.
+This repository asks one pre-specified question:
 
-The only target model in the baseline phase is the spatial-temporal
-Epidemic-Type Aftershock Sequence (ETAS) model used by EarthquakeNPP. This
-repository does not import code, databases, predictions, or runtime state from
-`earthquake-automata-core`.
+> Can a causal evidence gate preserve ETAS-relative information gain while
+> limiting negative transfer from a learned spatial correction?
 
-## Current Milestone
+The California RELM experiment publishes four daily, count-preserving forecast
+layers before the target UTC day begins: frozen ETAS, a supported-neighbor
+renewal incumbent, a fixed learned spatial expert, and an evidence-gated blend.
+The gate starts with zero historical evidence and may use only completed
+prospective target days. The primary live metric remains paired information
+gain per earthquake (IGPE) against ETAS; safety comparisons against the renewal
+incumbent are reported alongside it.
 
-CH-008 is the frozen leading challenger. It preserves ETAS triggering,
-magnitude distribution, and total expected count while redistributing only a
-bounded fraction of direct-background mass using causal renewal and discounted
-Gamma-Poisson frailty states.
+The current protocol is a 14-day operational dry run. Its scores are discarded
+scientifically and cannot support a performance claim. A claim-bearing 365-day
+test requires a separate immutable protocol and commit after the dry run passes.
+No forecast is backfilled, and any model, feature, threshold, geometry, or gate
+change requires a new protocol identity.
 
-The following stages are complete:
+The implementation includes a PostgreSQL/S3 causal publication pipeline,
+checksum-verified forecast artifacts, provisional and seven-day-settled scores,
+a bilingual live dashboard, and machine-readable evaluation endpoints at
+`/api/evaluation.json`, `/api/dashboard`, `/ai-evaluation`, and `/llms.txt`.
 
-- locked EarthquakeNPP `ComCat_25` reproduction and native ETAS alignment;
-- clean local catalog export and leakage-free daily replay;
-- pyCSEP integration and reference consistency checks;
-- CH-008 fit, one-use development validation, locked retrospective evaluation,
-  mechanism ablations, and external-region tests in New Zealand and Chile;
-- PostgreSQL/S3 daily collection, state, publication, and scoring pipeline;
-- bilingual live dashboard and complete Turkish/English method pages.
-- checksum-verified forecast maps and a double-opt-in daily status newsletter.
-- public AI-readable live evaluation through `/llms.txt`,
-  `/api/evaluation.json`, and `/ai-evaluation`.
-
-The three-region 14-day operational dry run covered target days 1--14 September
-2026 and is now in its seven-day catalog-settlement phase. Twelve calendar days
-were scored and two early software-failure days remain transparently marked as
-missed; they were neither backfilled nor scored as zero. Dry-run scores are
-scientifically discarded. The committed activation record is
-`data/manifests/ch008-three-region-dry-run-activation-v1.json`.
-
-The separate 365-day, minimum 500-event prospective protocol is frozen in
-`configs/prospective/ch008-three-region-prospective-v1.json`. The unchanged
-daily command will activate it automatically on the 23 September 2026 UTC issue
-cycle and publish the first formal target for 24 September. No forecast may be
-backfilled, and any model, feature, threshold, or geometry change requires a
-new protocol identity.
-
-The pre-prospective methods and evidence manuscript is available as
-[`paper/manuscript.md`](paper/manuscript.md), with the submission PDF at
-[`output/pdf/ch008-preprospective-manuscript-v0.1.pdf`](output/pdf/ch008-preprospective-manuscript-v0.1.pdf).
-The formal evaluation is publicly preregistered on
-[OSF](https://osf.io/u6yte/) under DOI
-[10.17605/OSF.IO/U6YTE](https://doi.org/10.17605/OSF.IO/U6YTE). Repository
-copies of the registration narrative and submitted form answers are preserved
-in [`registration/`](registration/).
-The frozen `v0.1.0` software release is archived on
-[Zenodo](https://doi.org/10.5281/zenodo.22800614).
-
-CH-001 through CH-009, including negative results and stopped candidates, are
-preserved in [`wiki/05-experiments/INDEX.md`](wiki/05-experiments/INDEX.md).
-The external-review dossier is
-[`wiki/07-scientific-review/CH008-scientific-dossier-tr.md`](wiki/07-scientific-review/CH008-scientific-dossier-tr.md).
-
-## CH-008 Evidence
-
-| Domain | Evaluation period | Events | IGPE over ETAS |
-| --- | --- | ---: | ---: |
-| California | 2019-2022 | 5,204 | +0.005213 |
-| California | 2023-2026-08-18 | 3,995 | +0.007865 |
-| New Zealand CSEP | 2008-2025 | 2,270 | +0.018561 |
-| Chile subduction corridor | 2015-2025 | 1,909 | +0.009718 |
-
-These are retrospective results, not a claim that CH-008 will outperform ETAS
-prospectively or predict the exact time, location, or magnitude of an
-earthquake. See the dossier and the bilingual method page for metrics,
-uncertainty, catalog contracts, and limitations.
+Internal development records inherited from the research repository remain in
+the history for reproducibility. Public pages and the future manuscript use the
+research question and model names rather than internal challenge labels.
 
 ## Prospective Runtime
 
@@ -85,7 +40,7 @@ The daily schedule is:
 
 1. collect rolling FDSN catalogs at `00:05 UTC`;
 2. causally advance each regional state to UTC midnight;
-3. publish ETAS and CH-008 forecasts for the next UTC day by `00:15 UTC`;
+3. publish ETAS, safe, fixed-expert, and gated forecasts for the next UTC day by `00:15 UTC`;
 4. score completed target days provisionally;
 5. freeze final scores after the seven-day catalog revision window.
 
@@ -95,11 +50,12 @@ The production command is:
 python scripts/run_prospective_daily.py
 ```
 
-The same command automatically activates the frozen 365-day protocol at the
-23 September 2026 UTC issue time and publishes its first formal target for
-24 September. The transition preserves the dry-run records, transfers the
-latest causal state without refitting, and writes formal artifacts to a
-separate S3 lane. A missed activation date is never backfilled.
+Coolify environment variables and the one-time causal state bootstrap are in
+[`DEPLOYMENT.md`](DEPLOYMENT.md).
+
+The command intentionally runs only the operational dry run. It cannot promote
+itself to a scientific prospective claim. Promotion requires a reviewed
+protocol file, a new commit, and a separate artifact lane.
 
 The independent morning newsletter command is:
 
@@ -111,12 +67,9 @@ It runs as a separate `03:00 UTC` (`06:00` Turkey time) Coolify task and cannot
 block forecast publication. Setup and delivery guarantees are documented in
 [`wiki/04-operations/prospective-newsletter.md`](wiki/04-operations/prospective-newsletter.md).
 
-The launch guard applies the frozen downtime policy independently per region
-and pipeline stage. It uses three attempts with 60/300-second backoff, preserves
-one logical catalog cutoff across retries, rejects publication after `00:15
-UTC`, records missed publications separately from deferred scoring, and makes
-the pooled primary claim inconclusive if a regional invalidation threshold is
-crossed.
+The launch guard uses three attempts with 60/300-second backoff, preserves one
+logical catalog cutoff across retries, rejects publication after `00:15 UTC`,
+and records missed publications separately from deferred scoring.
 
 ## Locked Reference
 

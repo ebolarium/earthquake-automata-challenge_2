@@ -71,7 +71,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 18px 24px 34px; }
 .progress-track i { width: 0; height: 100%; display: block; background: var(--teal); transition: width 250ms ease; }
 .run-notice.settling .progress-track i { background: var(--yellow); }
 .run-notice.complete .progress-track i { background: var(--green); }
-.metric-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.metric-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .metric { min-height: 92px; padding: 13px 15px; display: grid; align-content: space-between; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .metric.accent { border-top: 3px solid var(--teal); }
 .metric span { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; }
@@ -192,7 +192,7 @@ dd { margin: 0; text-align: right; font-size: 11px; font-weight: 650; }
 .subscription-page button { height: 36px; margin: 12px 0; padding: 0 14px; border: 0; border-radius: 4px; background: var(--ink); color: #fff; cursor: pointer; font: inherit; font-weight: 700; }
 
 @media (max-width: 980px) {
-  .metric-strip { grid-template-columns: repeat(2, 1fr); }
+  .metric-strip { grid-template-columns: repeat(3, 1fr); }
   .overview-grid { grid-template-columns: 1fr; }
   .forecast-map-layout { grid-template-columns: 1fr; }
   .newsletter-band { grid-template-columns: 1fr 1.25fr; }
@@ -221,7 +221,7 @@ dd { margin: 0; text-align: right; font-size: 11px; font-weight: 650; }
   .control-block { align-items: stretch; flex-direction: column; gap: 5px; }
   .segmented { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .map-regions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  #map-layer-control { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #map-layer-control { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .segment { min-width: 0; padding: 0 4px; }
   .legend { align-self: flex-end; }
   .chart-stage { min-height: 310px; aspect-ratio: 1.1; }

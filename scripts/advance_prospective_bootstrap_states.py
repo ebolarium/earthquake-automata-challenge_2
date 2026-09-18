@@ -30,6 +30,7 @@ from etas_challenge.prospective_daily import advance_regional_day  # noqa: E402
 from etas_challenge.prospective_daily import incremental_event_rates  # noqa: E402
 from etas_challenge.prospective_etas import california_daily_etas_grid  # noqa: E402
 from etas_challenge.prospective_protocol import validate_protocol  # noqa: E402
+from etas_challenge.prospective_protocol import configured_protocol_path  # noqa: E402
 from etas_challenge.prospective_replay import CH008State  # noqa: E402
 from etas_challenge.prospective_state import catalog_history_sha256  # noqa: E402
 from etas_challenge.prospective_state import load_bootstrap_catalog  # noqa: E402
@@ -38,7 +39,7 @@ from etas_challenge.prospective_state import selected_bootstrap_snapshots  # noq
 from etas_challenge.training_matrix import sha256_file, write_deterministic_npz  # noqa: E402
 
 
-PROTOCOL_PATH = ROOT / "configs/prospective/three-region-dry-run-v1.json"
+PROTOCOL_PATH = configured_protocol_path(ROOT)
 RUNTIME_PATH = ROOT / "configs/prospective/daily-runtime-v1.json"
 PARENT_MODEL_PATH = ROOT / "models/ch004-marked-renewal-v1.json"
 CH008_MODEL_PATH = ROOT / "models/ch008-boundary-sensitivity-v1.json"
@@ -223,6 +224,15 @@ def advance_california(
         np.asarray(source["ch008_exposure"]).copy(),
         np.asarray(source["ch008_roots"]).copy(),
     )
+    evidence_gate = "background_root_days" in source
+    root_days = (
+        list(np.asarray(source["background_root_days"], dtype=np.int64))
+        if evidence_gate else []
+    )
+    root_values = (
+        [row.copy() for row in np.asarray(source["background_root_values"], dtype=np.float64)]
+        if evidence_gate else []
+    )
     event_days = catalog.origin_time_ns // DAY_NS
     day = from_as_of
     while day < to_as_of:
@@ -269,6 +279,12 @@ def advance_california(
                 )
                 for geometry in context.grid_geometries
             )
+        if evidence_gate:
+            today_roots = np.zeros(context.grid.num_cells, dtype=np.float64)
+            if len(selected):
+                np.add.at(today_roots, cells, probabilities)
+            root_days.append(number)
+            root_values.append(today_roots)
         state = advance_california_day(
             state,
             event_geometries=list(geometries),
@@ -281,12 +297,20 @@ def advance_california(
             ch008_parameters=ch008["parameters"],
         )
         day += timedelta(days=1)
-    return {
+    arrays = {
         **common_arrays(catalog),
         "ch008_age": state.age,
         "ch008_exposure": state.exposure,
         "ch008_roots": state.roots,
     }
+    if evidence_gate:
+        keep = np.asarray(root_days) >= int(to_as_of.timestamp() // 86400) - 90
+        arrays.update({
+            "background_root_days": np.asarray(root_days, dtype=np.int64)[keep],
+            "background_root_values": np.asarray(root_values, dtype=np.float64)[keep],
+            "gate_log_bayes_factor": np.asarray(source["gate_log_bayes_factor"], dtype=np.float64),
+        })
+    return arrays
 
 
 def deterministic_npz_bytes(arrays: dict[str, np.ndarray]) -> bytes:
@@ -350,6 +374,10 @@ def main() -> int:
     parent = json.loads(PARENT_MODEL_PATH.read_text(encoding="utf-8"))
     ch008 = json.loads(CH008_MODEL_PATH.read_text(encoding="utf-8"))
     ch008_sha = sha256_file(CH008_MODEL_PATH)
+    challenger_sha = (
+        sha256_file(ROOT / protocol["challenger"]["model_path"])
+        if protocol.get("forecast_family") == "causal_evidence_gate" else ch008_sha
+    )
     storage = ObjectStorageConfig.from_environment()
     client = storage.client()
     results = []
@@ -390,7 +418,7 @@ def main() -> int:
             catalog_sha = catalog_history_sha256(catalog)
             state_id = model_state_id(
                 protocol["protocol_id"], region["region_id"], args.to_as_of,
-                args.catalog_cutoff, catalog_sha, etas_sha, ch008_sha,
+                args.catalog_cutoff, catalog_sha, etas_sha, challenger_sha,
             )
             arrays.update(
                 {
@@ -421,7 +449,7 @@ def main() -> int:
                 "baseline_model_id": region["baseline_model_id"],
                 "baseline_model_sha256": etas_sha,
                 "challenger_model_id": region["challenger_model_id"],
-                "challenger_model_sha256": ch008_sha,
+                "challenger_model_sha256": challenger_sha,
                 "state_builder_sha256": sha256_file(Path(__file__)),
                 "state_replay_module_sha256": sha256_file(REPLAY_MODULE_PATH),
                 "artifact_key": artifact_key,

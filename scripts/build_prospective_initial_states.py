@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import timezone
+from datetime import timedelta, timezone
 import hashlib
 import json
 import os
@@ -25,6 +25,9 @@ from etas_challenge.object_storage import object_key, put_verified_bytes  # noqa
 from etas_challenge.prospective_bootstrap import auxiliary_start, utc_timestamp  # noqa: E402
 from etas_challenge.prospective_bootstrap import validate_contiguous_windows  # noqa: E402
 from etas_challenge.prospective_protocol import validate_protocol  # noqa: E402
+from etas_challenge.prospective_protocol import configured_protocol_path  # noqa: E402
+from etas_challenge.prospective_context import load_california_runtime_context  # noqa: E402
+from etas_challenge.prospective_etas import california_daily_etas_grid  # noqa: E402
 from etas_challenge.prospective_state import load_bootstrap_catalog  # noqa: E402
 from etas_challenge.prospective_replay import replay_regional_ch008_state  # noqa: E402
 from etas_challenge.prospective_state import catalog_history_sha256  # noqa: E402
@@ -33,7 +36,8 @@ from etas_challenge.prospective_state import selected_bootstrap_snapshots  # noq
 from etas_challenge.training_matrix import sha256_file, write_deterministic_npz  # noqa: E402
 
 
-PROTOCOL_PATH = ROOT / "configs/prospective/three-region-dry-run-v1.json"
+PROTOCOL_PATH = configured_protocol_path(ROOT)
+RUNTIME_PATH = ROOT / "configs/prospective/daily-runtime-v1.json"
 PARENT_MODEL_PATH = ROOT / "models/ch004-marked-renewal-v1.json"
 CH008_MODEL_PATH = ROOT / "models/ch008-boundary-sensitivity-v1.json"
 CALIFORNIA_SEED = ROOT / "data/production/california-ch008-seed-20260819-v1.npz"
@@ -80,7 +84,54 @@ def common_arrays(catalog) -> dict[str, np.ndarray]:
     }
 
 
-def california_arrays(catalog, as_of) -> tuple[dict[str, np.ndarray], dict]:
+def california_root_history(catalog, as_of, etas_model: dict, runtime: dict):
+    context = load_california_runtime_context(ROOT)
+    reference = json.loads(
+        (ROOT / runtime["california_etas_grid"]["simulation_reference"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    start = as_of - timedelta(days=90)
+    days = np.arange(day_number(start), day_number(as_of), dtype=np.int64)
+    event_days = catalog.origin_time_ns // (86_400 * 1_000_000_000)
+    values = np.zeros((len(days), context.grid.num_cells), dtype=np.float64)
+    for row, number in enumerate(days):
+        selected = np.flatnonzero(event_days == number)
+        if not len(selected):
+            continue
+        issue = EPOCH_NS + np.timedelta64(int(number), "D")
+        baseline = california_daily_etas_grid(
+            issue_time=issue,
+            history_origin_time_ns=catalog.origin_time_ns,
+            history_latitudes=catalog.latitudes,
+            history_longitudes=catalog.longitudes,
+            history_magnitudes=catalog.magnitudes,
+            grid=context.grid,
+            background_rates=context.baseline_background_grid,
+            polygon_lat_lon=np.asarray(reference["polygon_lat_lon"]),
+            area_km2=reference["area_km2"],
+            beta=etas_model["beta"],
+            magnitude_reference=etas_model["magnitude_reference"],
+            magnitude_bin_width=reference["delta_m"],
+            parameters=etas_model["parameters"],
+            simulations=runtime["california_etas_grid"]["simulations"],
+            random_seed=runtime["california_etas_grid"]["random_seed"],
+            earth_radius_km=reference["earth_radius_km"],
+            max_events_per_catalog=reference["max_events_per_catalog"],
+        )
+        cells = context.grid.cell_indexes(
+            catalog.longitudes[selected], catalog.latitudes[selected]
+        )
+        probabilities = np.clip(
+            context.baseline_background_grid[cells] / baseline.rates[cells], 0.0, 1.0
+        )
+        np.add.at(values[row], cells, probabilities)
+    return days, values
+
+
+def california_arrays(
+    catalog, as_of, etas_model: dict, runtime: dict, evidence_gate: bool
+) -> tuple[dict[str, np.ndarray], dict]:
     manifest = json.loads(CALIFORNIA_SEED_MANIFEST.read_text(encoding="utf-8"))
     if manifest["as_of"] != as_of.strftime("%Y-%m-%dT%H:%M:%SZ"):
         raise ValueError("California initial state must use the locked retrospective boundary")
@@ -93,6 +144,15 @@ def california_arrays(catalog, as_of) -> tuple[dict[str, np.ndarray], dict]:
             "ch008_exposure": seed["exposure"].copy(),
             "ch008_roots": seed["roots"].copy(),
         }
+    if evidence_gate:
+        root_days, root_values = california_root_history(
+            catalog, as_of, etas_model, runtime
+        )
+        arrays.update({
+            "background_root_days": root_days,
+            "background_root_values": root_values,
+            "gate_log_bayes_factor": np.asarray(0.0, dtype=np.float64),
+        })
     return arrays, {
         "ch008_state_source": manifest["state_id"],
         "ch008_state_source_sha256": manifest["output"]["sha256"],
@@ -195,6 +255,7 @@ def main() -> int:
     import psycopg
 
     protocol = validate_protocol(PROTOCOL_PATH, ROOT)
+    runtime = json.loads(RUNTIME_PATH.read_text(encoding="utf-8"))
     selected = set(args.regions or [region["region_id"] for region in protocol["regions"]])
     known = {region["region_id"] for region in protocol["regions"]}
     if not selected <= known:
@@ -202,6 +263,10 @@ def main() -> int:
     parent = json.loads(PARENT_MODEL_PATH.read_text(encoding="utf-8"))
     ch008 = json.loads(CH008_MODEL_PATH.read_text(encoding="utf-8"))
     ch008_sha = sha256_file(CH008_MODEL_PATH)
+    challenger_sha = (
+        sha256_file(ROOT / protocol["challenger"]["model_path"])
+        if protocol.get("forecast_family") == "causal_evidence_gate" else ch008_sha
+    )
     storage = ObjectStorageConfig.from_environment()
     client = storage.client()
     results = []
@@ -226,10 +291,13 @@ def main() -> int:
             etas_sha = sha256_file(etas_path)
             state_id = model_state_id(
                 protocol["protocol_id"], region["region_id"], args.as_of,
-                args.catalog_cutoff, catalog_sha, etas_sha, ch008_sha,
+                args.catalog_cutoff, catalog_sha, etas_sha, challenger_sha,
             )
             if region["region_id"] == "california-relm":
-                arrays, method = california_arrays(catalog, args.as_of)
+                arrays, method = california_arrays(
+                    catalog, args.as_of, etas_model, runtime,
+                    protocol.get("forecast_family") == "causal_evidence_gate",
+                )
             else:
                 arrays, method = regional_arrays(
                     region, catalog, args.as_of, etas_model, parent, ch008
@@ -263,7 +331,7 @@ def main() -> int:
                 "baseline_model_id": region["baseline_model_id"],
                 "baseline_model_sha256": etas_sha,
                 "challenger_model_id": region["challenger_model_id"],
-                "challenger_model_sha256": ch008_sha,
+                "challenger_model_sha256": challenger_sha,
                 "state_builder_sha256": sha256_file(Path(__file__)),
                 "state_replay_module_sha256": sha256_file(REPLAY_MODULE_PATH),
                 "artifact_key": artifact_key,
