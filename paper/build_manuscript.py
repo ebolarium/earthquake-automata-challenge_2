@@ -483,6 +483,11 @@ def cover_sheet(s: dict[str, ParagraphStyle]) -> list:
             s["Meta"],
         ),
         Paragraph("<b>Correspondence</b>: hello@bboga.com", s["Meta"]),
+        Paragraph(
+            '<b>Research archive DOI</b>: <a href="https://doi.org/10.5281/zenodo.22832305" '
+            'color="#087f8c">https://doi.org/10.5281/zenodo.22832305</a>',
+            s["Meta"],
+        ),
         Spacer(1, 6 * mm),
         Paragraph("<b>Version</b>: 1.0, 18 September 2026", s["Meta"]),
         Paragraph("<b>Submission type</b>: Research article / retrospective evidence and prospective protocol", s["Meta"]),

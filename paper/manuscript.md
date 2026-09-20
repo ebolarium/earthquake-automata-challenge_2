@@ -5,6 +5,7 @@
 Independent Researcher, Adana, Turkiye
 ORCID: https://orcid.org/0009-0000-9076-946X
 Correspondence: hello@bboga.com
+Research archive DOI: https://doi.org/10.5281/zenodo.22832305
 
 **Manuscript status:** Version 1.0, 18 September 2026. Research article and prospective protocol. The retrospective analyses reported here used opened data; the confirmatory 365-day experiment was frozen before its first eligible four-region forecast and had not produced a prospective result at the time of writing.
 
@@ -198,7 +199,7 @@ The model, regional adapters, decision rule, and failure handling are now frozen
 
 ## 9. Reproducibility and data availability
 
-Source code, frozen configurations, model weights, protocol hashes, and the public scorecard are available at https://github.com/ebolarium/earthquake-automata-challenge_2 and https://etas2.bboga.com. The repository records the exact protocol, regional ETAS parameter files, neural ensemble digests, and forecast runtime digests. Retrospective result artifacts originated in the preceding development repository and are reported with their claim-boundary metadata. Public catalogs are retrieved from USGS ANSS ComCat and GeoNet FDSN endpoints. Raw responses are archived by the operational pipeline subject to provider terms. The software and manuscript repository should be cited by release or commit hash in any reproduction.
+Source code, frozen configurations, model weights, protocol hashes, and the public scorecard are available at https://github.com/ebolarium/earthquake-automata-challenge_2 and https://etas2.bboga.com. The archived research release is permanently identified by https://doi.org/10.5281/zenodo.22832305. The repository records the exact protocol, regional ETAS parameter files, neural ensemble digests, and forecast runtime digests. Retrospective result artifacts originated in the preceding development repository and are reported with their claim-boundary metadata. Public catalogs are retrieved from USGS ANSS ComCat and GeoNet FDSN endpoints. Raw responses are archived by the operational pipeline subject to provider terms. Reproductions should cite the Zenodo DOI and the corresponding repository release or commit hash.
 
 ## 10. Declarations
 

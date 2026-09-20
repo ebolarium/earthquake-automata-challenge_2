@@ -17,4 +17,6 @@ output/pdf/causal-spatial-correction-etas-preprint-v1.0.pdf
 ```
 
 The PDF includes the EarthArXiv coversheet, manuscript, figures, declarations,
-and references. Do not upload the figures as separate supplemental files.
+references, and the archived research release DOI
+https://doi.org/10.5281/zenodo.22832305. Do not upload the figures as separate
+supplemental files.

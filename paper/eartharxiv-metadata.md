@@ -38,6 +38,7 @@ CC BY 4.0
 
 ## Related resources
 
+- Archived research release: https://doi.org/10.5281/zenodo.22832305
 - Code and frozen protocol: https://github.com/ebolarium/earthquake-automata-challenge_2
 - Public prospective scorecard: https://etas2.bboga.com
 
